@@ -20,8 +20,6 @@ bool ShilinNCountingNumberSentencesInLineMPI::ValidationImpl() {
   MPI_Comm_rank(MPI_COMM_WORLD, &rank);
 
   if (rank == 0) {
-    // Input can be any string (including empty)
-    // Output should be initialized to 0
     return GetOutput() == 0;
   }
   return true;
@@ -48,7 +46,6 @@ bool ShilinNCountingNumberSentencesInLineMPI::RunImpl() {
   std::string input_str;
   int input_length = 0;
 
-  // Rank 0 broadcasts the length of the input string
   if (rank == 0) {
     input_str = GetInput();
     input_length = static_cast<int>(input_str.length());
@@ -56,7 +53,6 @@ bool ShilinNCountingNumberSentencesInLineMPI::RunImpl() {
 
   MPI_Bcast(&input_length, 1, MPI_INT, 0, MPI_COMM_WORLD);
 
-  // If empty string, result is 0
   if (input_length == 0) {
     if (rank == 0) {
       GetOutput() = 0;
@@ -64,36 +60,29 @@ bool ShilinNCountingNumberSentencesInLineMPI::RunImpl() {
     return true;
   }
 
-  // Prepare buffer for all ranks
   if (rank != 0) {
     input_str.resize(input_length);
   }
 
-  // Broadcast the entire string to all processes
   MPI_Bcast(input_str.data(), input_length, MPI_CHAR, 0, MPI_COMM_WORLD);
 
-  // Calculate chunk size for each process
   int chunk_size = input_length / size;
   int remainder = input_length % size;
 
-  // Determine start and end for this rank
   int start_pos = (rank * chunk_size) + std::min(rank, remainder);
   int end_pos = start_pos + chunk_size + (rank < remainder ? 1 : 0);
 
-  // Count sentences in local chunk
   int local_count = 0;
   for (int i = start_pos; i < end_pos; ++i) {
     char ch = input_str[i];
     if (ch == '.' || ch == '!' || ch == '?') {
       local_count++;
-      // Skip consecutive punctuation marks
       while (i + 1 < end_pos && (input_str[i + 1] == '.' || input_str[i + 1] == '!' || input_str[i + 1] == '?')) {
         ++i;
       }
     }
   }
 
-  // Gather results to rank 0 and broadcast to all
   int global_count = 0;
   MPI_Reduce(&local_count, &global_count, 1, MPI_INT, MPI_SUM, 0, MPI_COMM_WORLD);
   MPI_Bcast(&global_count, 1, MPI_INT, 0, MPI_COMM_WORLD);
@@ -103,7 +92,6 @@ bool ShilinNCountingNumberSentencesInLineMPI::RunImpl() {
 }
 
 bool ShilinNCountingNumberSentencesInLineMPI::PostProcessingImpl() {
-  // No post-processing needed
   return true;
 }
 

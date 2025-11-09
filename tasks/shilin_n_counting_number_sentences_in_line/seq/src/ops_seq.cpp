@@ -14,13 +14,10 @@ ShilinNCountingNumberSentencesInLineSEQ::ShilinNCountingNumberSentencesInLineSEQ
 }
 
 bool ShilinNCountingNumberSentencesInLineSEQ::ValidationImpl() {
-  // Input can be any string (including empty)
-  // Output should be initialized to 0
   return GetOutput() == 0;
 }
 
 bool ShilinNCountingNumberSentencesInLineSEQ::PreProcessingImpl() {
-  // No preprocessing needed for this task
   GetOutput() = 0;
   return true;
 }
@@ -29,12 +26,10 @@ bool ShilinNCountingNumberSentencesInLineSEQ::RunImpl() {
   const std::string &input = GetInput();
   int count = 0;
 
-  // Count sentences: sentence ends with '.', '!', or '?'
   for (size_t i = 0; i < input.length(); ++i) {
     char ch = input[i];
     if (ch == '.' || ch == '!' || ch == '?') {
       count++;
-      // Skip consecutive punctuation marks to avoid counting them separately
       while (i + 1 < input.length() && (input[i + 1] == '.' || input[i + 1] == '!' || input[i + 1] == '?')) {
         ++i;
       }
@@ -46,7 +41,6 @@ bool ShilinNCountingNumberSentencesInLineSEQ::RunImpl() {
 }
 
 bool ShilinNCountingNumberSentencesInLineSEQ::PostProcessingImpl() {
-  // No post-processing needed
   return true;
 }
 

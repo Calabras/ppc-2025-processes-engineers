@@ -6,8 +6,8 @@
 
 ## 1. Introduction
 
-Обработка текста является одной из фундаментальных задач в области компьютерных наук. Подсчет предложений в тексте - базовая операция, используемая в системах обработки естественного языка, анализаторах текста, системах машинного перевода и других приложениях.
-Цель данной работы - реализовать эффективный алгоритм подсчета предложений в строке с использованием последовательного подхода (SEQ) и параллельного подхода на основе MPI (Message Passing Interface), а также провести сравнительный анализ производительности обоих подходов.
+Подсчет предложений в тексте - стандартная операция, используемая в системах системах машинного перевода и других приложениях и при анализе текста.
+Цель данной работы - реализовать эффективный алгоритм подсчета предложений в строке с использованием последовательного подхода (SEQ) и параллельного подхода (MPI), а также провести сравнительный анализ производительности обоих подходов.
 
 ## 2. Problem Statement
 
@@ -39,28 +39,6 @@
 ## 3. Baseline Algorithm (Sequential)
 
 Последовательный алгоритм выполняет линейный проход по строке:
-
-**Псевдокод:**
-```
-function CountSentences(input_string):
-    count = 0
-    i = 0
-    
-    while i < length(input_string):
-        ch = input_string[i]
-        
-        if ch in {'.', '!', '?'}:
-            count++
-            
-            // Skip consecutive punctuation marks
-            while (i+1 < length(input_string)) and 
-                  (input_string[i+1] in {'.', '!', '?'}):
-                i++
-        
-        i++
-    
-    return count
-```
 
 **Сложность:**
 - Временная: O(n), где n - длина строки
@@ -258,14 +236,12 @@ MPI result (4 processes): 2 ✓
 ## 9. References
 
 1. [MPI Standard Documentation](https://www.mpi-forum.org/docs/) - официальная документация MPI
-2. [Open MPI Documentation](https://www.open-mpi.org/doc/) - документация Open MPI 5.0
-3. [Google C++ Style Guide](https://google.github.io/styleguide/cppguide.html) - руководство по стилю кода
-4. Гергель В.П. "Высокопроизводительные вычисления для многоядерных многопроцессорных систем" - учебное пособие
-5. [PPC Course Repository](https://github.com/learning-process/ppc-2025-processes-engineers) - репозиторий курса
+2. [Google C++ Style Guide](https://google.github.io/styleguide/cppguide.html) - руководство по стилю кода
+3. [PPC Course Repository](https://github.com/learning-process/ppc-2025-processes-engineers) - репозиторий курса по параллельному программированию
 
 ## Appendix: MPI Implementation
 
-### RunImpl() - основной алгоритм MPI версии
+### RunImpl() - основной алгоритм MPI версии кода
 
 ```cpp
 bool ShilinNCountingNumberSentencesInLineMPI::RunImpl() {
@@ -277,7 +253,6 @@ bool ShilinNCountingNumberSentencesInLineMPI::RunImpl() {
   std::string input_str;
   int input_length = 0;
 
-  // Rank 0 broadcasts the length of the input string
   if (rank == 0) {
     input_str = GetInput();
     input_length = static_cast<int>(input_str.length());
@@ -285,7 +260,6 @@ bool ShilinNCountingNumberSentencesInLineMPI::RunImpl() {
 
   MPI_Bcast(&input_length, 1, MPI_INT, 0, MPI_COMM_WORLD);
 
-  // If empty string, result is 0
   if (input_length == 0) {
     if (rank == 0) {
       GetOutput() = 0;
@@ -293,29 +267,23 @@ bool ShilinNCountingNumberSentencesInLineMPI::RunImpl() {
     return true;
   }
 
-  // Prepare buffer for all ranks
   if (rank != 0) {
     input_str.resize(input_length);
   }
 
-  // Broadcast the entire string to all processes
   MPI_Bcast(input_str.data(), input_length, MPI_CHAR, 0, MPI_COMM_WORLD);
 
-  // Calculate chunk size for each process
   int chunk_size = input_length / size;
   int remainder = input_length % size;
 
-  // Determine start and end for this rank
   int start_pos = rank * chunk_size + std::min(rank, remainder);
   int end_pos = start_pos + chunk_size + (rank < remainder ? 1 : 0);
 
-  // Count sentences in local chunk
   int local_count = 0;
   for (int i = start_pos; i < end_pos; ++i) {
     char ch = input_str[i];
     if (ch == '.' || ch == '!' || ch == '?') {
       local_count++;
-      // Skip consecutive punctuation marks
       while (i + 1 < end_pos && 
              (input_str[i + 1] == '.' || 
               input_str[i + 1] == '!' || 
@@ -325,11 +293,9 @@ bool ShilinNCountingNumberSentencesInLineMPI::RunImpl() {
     }
   }
 
-  // Gather results to rank 0
   int global_count = 0;
   MPI_Reduce(&local_count, &global_count, 1, MPI_INT, MPI_SUM, 0, MPI_COMM_WORLD);
 
-  // Broadcast result to all processes for validation
   if (rank == 0) {
     GetOutput() = global_count;
   }
@@ -341,83 +307,4 @@ bool ShilinNCountingNumberSentencesInLineMPI::RunImpl() {
 
   return true;
 }
-```
-
-### Ключевые MPI операции
-
-1. **MPI_Bcast** (broadcast):
-   - Распространение длины строки: `MPI_Bcast(&input_length, 1, MPI_INT, 0, MPI_COMM_WORLD)`
-   - Распространение строки: `MPI_Bcast(input_str.data(), input_length, MPI_CHAR, 0, MPI_COMM_WORLD)`
-   - Распространение результата: `MPI_Bcast(&global_count, 1, MPI_INT, 0, MPI_COMM_WORLD)`
-
-2. **MPI_Reduce** (reduction):
-   - Суммирование локальных счетчиков: `MPI_Reduce(&local_count, &global_count, 1, MPI_INT, MPI_SUM, 0, MPI_COMM_WORLD)`
-
-### Распределение данных (пример для 4 процессов, строка длины 10)
-
-```
-String: "ABCDEFGHIJ" (length = 10)
-Processes: 4
-
-chunk_size = 10 / 4 = 2
-remainder = 10 % 4 = 2
-
-Rank 0: positions [0, 3)  -> "ABC" (chunk_size + 1)
-Rank 1: positions [3, 6)  -> "DEF" (chunk_size + 1)
-Rank 2: positions [6, 8)  -> "GH"  (chunk_size)
-Rank 3: positions [8, 10) -> "IJ"  (chunk_size)
-```
-
-### Полная реализация ValidationImpl
-
-```cpp
-bool ShilinNCountingNumberSentencesInLineMPI::ValidationImpl() {
-  int rank = 0;
-  MPI_Comm_rank(MPI_COMM_WORLD, &rank);
-
-  if (rank == 0) {
-    // Input can be any string (including empty)
-    // Output should be initialized to 0
-    return GetOutput() == 0;
-  }
-  return true;
-}
-```
-
-### Полная реализация PreProcessingImpl
-
-```cpp
-bool ShilinNCountingNumberSentencesInLineMPI::PreProcessingImpl() {
-  int rank = 0;
-  int size = 0;
-  MPI_Comm_rank(MPI_COMM_WORLD, &rank);
-  MPI_Comm_size(MPI_COMM_WORLD, &size);
-
-  if (rank == 0) {
-    GetOutput() = 0;
-  }
-  return true;
-}
-```
-
-### Тестовые случаи (примеры из functional tests)
-
-```cpp
-const std::array<TestType, 15> kTestParam = {
-    std::make_tuple("Hello world.", "1"),
-    std::make_tuple("Hello! How are you?", "2"),
-    std::make_tuple("This is a test. Another sentence! And one more?", "3"),
-    std::make_tuple("", "0"),
-    std::make_tuple("No sentences here", "0"),
-    std::make_tuple("One. Two. Three.", "3"),
-    std::make_tuple("Multiple punctuation...!!!", "1"),
-    std::make_tuple("Mix. Of! Different? Endings.", "4"),
-    std::make_tuple("Only dots...", "1"),
-    std::make_tuple("Single! Exclamation!", "2"),
-    std::make_tuple("Question? Answer! Statement.", "3"),
-    std::make_tuple("Wow!!! Amazing!!! Great!!!", "3"),
-    std::make_tuple("A.B.C.D.E.F.G.H.I.J.", "10"),
-    std::make_tuple("Just one very long sentence without any ending", "0"),
-    std::make_tuple("Start. Middle! End?", "3")
-};
 ```

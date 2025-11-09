@@ -1,29 +1,29 @@
-#include "example_processes/seq/include/ops_seq.hpp"
+#include "shilin_n_counting_number_sentences_in_line/seq/include/ops_seq.hpp"
 
 #include <numeric>
 #include <vector>
 
-#include "example_processes/common/include/common.hpp"
+#include "shilin_n_counting_number_sentences_in_line/common/include/common.hpp"
 #include "util/include/util.hpp"
 
 namespace shilin_n_counting_number_sentences_in_line {
 
-NesterovATestTaskSEQ::NesterovATestTaskSEQ(const InType &in) {
+ShilinNCountingNumberSentencesInLineSEQ::ShilinNCountingNumberSentencesInLineSEQ(const InType &in) {
   SetTypeOfTask(GetStaticTypeOfTask());
   GetInput() = in;
   GetOutput() = 0;
 }
 
-bool NesterovATestTaskSEQ::ValidationImpl() {
+bool ShilinNCountingNumberSentencesInLineSEQ::ValidationImpl() {
   return (GetInput() > 0) && (GetOutput() == 0);
 }
 
-bool NesterovATestTaskSEQ::PreProcessingImpl() {
+bool ShilinNCountingNumberSentencesInLineSEQ::PreProcessingImpl() {
   GetOutput() = 2 * GetInput();
   return GetOutput() > 0;
 }
 
-bool NesterovATestTaskSEQ::RunImpl() {
+bool ShilinNCountingNumberSentencesInLineSEQ::RunImpl() {
   if (GetInput() == 0) {
     return false;
   }
@@ -52,7 +52,7 @@ bool NesterovATestTaskSEQ::RunImpl() {
   return GetOutput() > 0;
 }
 
-bool NesterovATestTaskSEQ::PostProcessingImpl() {
+bool ShilinNCountingNumberSentencesInLineSEQ::PostProcessingImpl() {
   GetOutput() -= GetInput();
   return GetOutput() > 0;
 }

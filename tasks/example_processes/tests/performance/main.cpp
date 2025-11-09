@@ -5,9 +5,9 @@
 #include "example_processes/seq/include/ops_seq.hpp"
 #include "util/include/perf_test_util.hpp"
 
-namespace nesterov_a_test_task_processes {
+namespace shilin_n_counting_number_sentences_in_line {
 
-class ExampleRunPerfTestProcesses : public ppc::util::BaseRunPerfTests<InType, OutType> {
+class ExampleRunPerfTestProcessesExample : public ppc::util::BaseRunPerfTests<InType, OutType> {
   const int kCount_ = 100;
   InType input_data_{};
 
@@ -24,7 +24,7 @@ class ExampleRunPerfTestProcesses : public ppc::util::BaseRunPerfTests<InType, O
   }
 };
 
-TEST_P(ExampleRunPerfTestProcesses, RunPerfModes) {
+TEST_P(ExampleRunPerfTestProcessesExample, RunPerfModes) {
   ExecuteTest(GetParam());
 }
 
@@ -33,8 +33,8 @@ const auto kAllPerfTasks =
 
 const auto kGtestValues = ppc::util::TupleToGTestValues(kAllPerfTasks);
 
-const auto kPerfTestName = ExampleRunPerfTestProcesses::CustomPerfTestName;
+const auto kPerfTestName = ExampleRunPerfTestProcessesExample::CustomPerfTestName;
 
-INSTANTIATE_TEST_SUITE_P(RunModeTests, ExampleRunPerfTestProcesses, kGtestValues, kPerfTestName);
+INSTANTIATE_TEST_SUITE_P(RunModeTests, ExampleRunPerfTestProcessesExample, kGtestValues, kPerfTestName);
 
-}  // namespace nesterov_a_test_task_processes
+}  // namespace shilin_n_counting_number_sentences_in_line

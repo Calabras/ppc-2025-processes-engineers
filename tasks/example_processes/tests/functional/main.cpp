@@ -71,9 +71,9 @@ TEST_P(NesterovARunFuncTestsProcesses, MatmulFromPic) {
 
 const std::array<TestType, 3> kTestParam = {std::make_tuple(3, "3"), std::make_tuple(5, "5"), std::make_tuple(7, "7")};
 
-const auto kTestTasksList =
-    std::tuple_cat(ppc::util::AddFuncTask<NesterovATestTaskMPI, InType>(kTestParam, PPC_SETTINGS_nesterov_a_test_task_processes),
-                   ppc::util::AddFuncTask<NesterovATestTaskSEQ, InType>(kTestParam, PPC_SETTINGS_nesterov_a_test_task_processes));
+const auto kTestTasksList = std::tuple_cat(
+    ppc::util::AddFuncTask<NesterovATestTaskMPI, InType>(kTestParam, PPC_SETTINGS_nesterov_a_test_task_processes),
+    ppc::util::AddFuncTask<NesterovATestTaskSEQ, InType>(kTestParam, PPC_SETTINGS_nesterov_a_test_task_processes));
 
 const auto kGtestValues = ppc::util::ExpandToValues(kTestTasksList);
 

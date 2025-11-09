@@ -1,16 +1,16 @@
 #pragma once
 
-#include "example_processes/common/include/common.hpp"
+#include "shilin_n_counting_number_sentences_in_line/common/include/common.hpp"
 #include "task/include/task.hpp"
 
 namespace shilin_n_counting_number_sentences_in_line {
 
-class NesterovATestTaskSEQ : public BaseTask {
+class ShilinNCountingNumberSentencesInLineSEQ : public BaseTask {
  public:
   static constexpr ppc::task::TypeOfTask GetStaticTypeOfTask() {
     return ppc::task::TypeOfTask::kSEQ;
   }
-  explicit NesterovATestTaskSEQ(const InType &in);
+  explicit ShilinNCountingNumberSentencesInLineSEQ(const InType &in);
 
  private:
   bool ValidationImpl() override;

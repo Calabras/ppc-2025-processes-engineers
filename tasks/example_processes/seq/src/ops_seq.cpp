@@ -6,7 +6,7 @@
 #include "example_processes/common/include/common.hpp"
 #include "util/include/util.hpp"
 
-namespace nesterov_a_test_task_processes {
+namespace shilin_n_counting_number_sentences_in_line {
 
 NesterovATestTaskSEQ::NesterovATestTaskSEQ(const InType &in) {
   SetTypeOfTask(GetStaticTypeOfTask());
@@ -57,4 +57,4 @@ bool NesterovATestTaskSEQ::PostProcessingImpl() {
   return GetOutput() > 0;
 }
 
-}  // namespace nesterov_a_test_task_processes
+}  // namespace shilin_n_counting_number_sentences_in_line

@@ -7,9 +7,9 @@
 
 namespace shilin_n_counting_number_sentences_in_line {
 
-using InType = int;
+using InType = std::string;
 using OutType = int;
-using TestType = std::tuple<int, std::string>;
+using TestType = std::tuple<std::string, std::string>;
 using BaseTask = ppc::task::Task<InType, OutType>;
 
 }  // namespace shilin_n_counting_number_sentences_in_line

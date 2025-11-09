@@ -14,7 +14,7 @@ class ShilinNCountingNumberSentencesInLinePerfTests : public ppc::util::BaseRunP
   OutType expected_output_ = 0;
 
   void SetUp() override {
-    const int num_sentences = 10000;
+    const int num_sentences = 100000000;
     std::string sentence = "This is a test sentence. ";
     input_data_.clear();
     input_data_.reserve(sentence.length() * num_sentences);

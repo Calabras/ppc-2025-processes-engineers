@@ -39,7 +39,7 @@ class ShilinNCountingNumberSentencesInLineRunFuncTestsProcesses
 
  protected:
   void SetUp() override {
-    TestType params = std::get<static_cast<std::size_t>(ppc::util::GTestParamIndex::kTestParams)>(GetParam());
+    auto params = std::get<2>(GetParam());
     input_data_ = std::get<0>(params);
     expected_output_ = std::stoi(std::get<1>(params));
   }

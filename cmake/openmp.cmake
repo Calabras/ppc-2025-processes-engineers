@@ -21,9 +21,7 @@ if(APPLE AND CMAKE_CXX_COMPILER_ID MATCHES "Clang")
     execute_process(
       COMMAND ${HOMEBREW_BREW} --prefix libomp
       OUTPUT_VARIABLE LIBOMP_PREFIX
-      OUTPUT_STRIP_TRAILING_WHITESPACE
-      ERROR_QUIET
-    )
+      OUTPUT_STRIP_TRAILING_WHITESPACE ERROR_QUIET)
     if(LIBOMP_PREFIX AND EXISTS "${LIBOMP_PREFIX}/lib/libomp.dylib")
       set(OpenMP_C_FLAGS
           "-Xpreprocessor -fopenmp -I${LIBOMP_PREFIX}/include"

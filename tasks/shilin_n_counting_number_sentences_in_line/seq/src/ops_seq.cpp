@@ -1,10 +1,9 @@
 #include "shilin_n_counting_number_sentences_in_line/seq/include/ops_seq.hpp"
 
-#include <numeric>
-#include <vector>
+#include <cstddef>
+#include <string>
 
 #include "shilin_n_counting_number_sentences_in_line/common/include/common.hpp"
-#include "util/include/util.hpp"
 
 namespace shilin_n_counting_number_sentences_in_line {
 
@@ -15,46 +14,40 @@ ShilinNCountingNumberSentencesInLineSEQ::ShilinNCountingNumberSentencesInLineSEQ
 }
 
 bool ShilinNCountingNumberSentencesInLineSEQ::ValidationImpl() {
-  return (GetInput() > 0) && (GetOutput() == 0);
+  // Input can be any string (including empty)
+  // Output should be initialized to 0
+  return GetOutput() == 0;
 }
 
 bool ShilinNCountingNumberSentencesInLineSEQ::PreProcessingImpl() {
-  GetOutput() = 2 * GetInput();
-  return GetOutput() > 0;
+  // No preprocessing needed for this task
+  GetOutput() = 0;
+  return true;
 }
 
 bool ShilinNCountingNumberSentencesInLineSEQ::RunImpl() {
-  if (GetInput() == 0) {
-    return false;
-  }
+  const std::string &input = GetInput();
+  int count = 0;
 
-  for (InType i = 0; i < GetInput(); i++) {
-    for (InType j = 0; j < GetInput(); j++) {
-      for (InType k = 0; k < GetInput(); k++) {
-        std::vector<InType> tmp(i + j + k, 1);
-        GetOutput() += std::accumulate(tmp.begin(), tmp.end(), 0);
-        GetOutput() -= i + j + k;
+  // Count sentences: sentence ends with '.', '!', or '?'
+  for (size_t i = 0; i < input.length(); ++i) {
+    char ch = input[i];
+    if (ch == '.' || ch == '!' || ch == '?') {
+      count++;
+      // Skip consecutive punctuation marks to avoid counting them separately
+      while (i + 1 < input.length() && (input[i + 1] == '.' || input[i + 1] == '!' || input[i + 1] == '?')) {
+        ++i;
       }
     }
   }
 
-  const int num_threads = ppc::util::GetNumThreads();
-  GetOutput() *= num_threads;
-
-  int counter = 0;
-  for (int i = 0; i < num_threads; i++) {
-    counter++;
-  }
-
-  if (counter != 0) {
-    GetOutput() /= counter;
-  }
-  return GetOutput() > 0;
+  GetOutput() = count;
+  return true;
 }
 
 bool ShilinNCountingNumberSentencesInLineSEQ::PostProcessingImpl() {
-  GetOutput() -= GetInput();
-  return GetOutput() > 0;
+  // No post-processing needed
+  return true;
 }
 
 }  // namespace shilin_n_counting_number_sentences_in_line

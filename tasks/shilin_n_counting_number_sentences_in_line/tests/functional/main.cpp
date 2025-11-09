@@ -1,58 +1,51 @@
 #include <gtest/gtest.h>
-#include <stb/stb_image.h>
 
-#include <algorithm>
 #include <array>
-#include <cstddef>
-#include <cstdint>
-#include <numeric>
-#include <stdexcept>
 #include <string>
 #include <tuple>
-#include <utility>
 #include <vector>
 
 #include "shilin_n_counting_number_sentences_in_line/common/include/common.hpp"
 #include "shilin_n_counting_number_sentences_in_line/mpi/include/ops_mpi.hpp"
 #include "shilin_n_counting_number_sentences_in_line/seq/include/ops_seq.hpp"
 #include "util/include/func_test_util.hpp"
-#include "util/include/util.hpp"
 
 namespace shilin_n_counting_number_sentences_in_line {
 
-class ShilinNCountingNumberSentencesInLineRunFuncTestsProcesses : public ppc::util::BaseRunFuncTests<InType, OutType, TestType> {
+class ShilinNCountingNumberSentencesInLineRunFuncTestsProcesses
+    : public ppc::util::BaseRunFuncTests<InType, OutType, TestType> {
  public:
   static std::string PrintTestParam(const TestType &test_param) {
-    return std::to_string(std::get<0>(test_param)) + "_" + std::get<1>(test_param);
+    std::string input = std::get<0>(test_param);
+    std::string expected = std::get<1>(test_param);
+
+    // Replace spaces and special characters with underscores for valid test names
+    std::string sanitized;
+    sanitized.reserve(input.length() + expected.length() + 10);
+
+    for (char ch : input) {
+      if (std::isalnum(static_cast<unsigned char>(ch))) {
+        sanitized += ch;
+      } else {
+        sanitized += '_';
+      }
+    }
+
+    sanitized += "_count_";
+    sanitized += expected;
+
+    return sanitized;
   }
 
  protected:
   void SetUp() override {
-    int width = -1;
-    int height = -1;
-    int channels = -1;
-    std::vector<uint8_t> img;
-    // Read image in RGB to ensure consistent channel count
-    {
-      std::string abs_path = ppc::util::GetAbsoluteTaskPath(PPC_ID_shilin_n_counting_number_sentences_in_line, "pic.jpg");
-      auto *data = stbi_load(abs_path.c_str(), &width, &height, &channels, STBI_rgb);
-      if (data == nullptr) {
-        throw std::runtime_error("Failed to load image: " + std::string(stbi_failure_reason()));
-      }
-      channels = STBI_rgb;
-      img = std::vector<uint8_t>(data, data + (static_cast<ptrdiff_t>(width * height * channels)));
-      stbi_image_free(data);
-      if (std::cmp_not_equal(width, height)) {
-        throw std::runtime_error("width != height: ");
-      }
-    }
-
     TestType params = std::get<static_cast<std::size_t>(ppc::util::GTestParamIndex::kTestParams)>(GetParam());
-    input_data_ = width - height + std::min(std::accumulate(img.begin(), img.end(), 0), channels);
+    input_data_ = std::get<0>(params);
+    expected_output_ = std::stoi(std::get<1>(params));
   }
 
   bool CheckTestOutputData(OutType &output_data) final {
-    return (input_data_ == output_data);
+    return (expected_output_ == output_data);
   }
 
   InType GetTestInputData() final {
@@ -60,26 +53,45 @@ class ShilinNCountingNumberSentencesInLineRunFuncTestsProcesses : public ppc::ut
   }
 
  private:
-  InType input_data_ = 0;
+  InType input_data_;
+  OutType expected_output_ = 0;
 };
 
 namespace {
 
-TEST_P(ShilinNCountingNumberSentencesInLineRunFuncTestsProcesses, MatmulFromPic) {
+TEST_P(ShilinNCountingNumberSentencesInLineRunFuncTestsProcesses, CountSentences) {
   ExecuteTest(GetParam());
 }
 
-const std::array<TestType, 3> kTestParam = {std::make_tuple(3, "3"), std::make_tuple(5, "5"), std::make_tuple(7, "7")};
+// Test cases: {input_string, expected_count_as_string}
+const std::array<TestType, 15> kTestParam = {std::make_tuple("Hello world.", "1"),
+                                             std::make_tuple("Hello! How are you?", "2"),
+                                             std::make_tuple("This is a test. Another sentence! And one more?", "3"),
+                                             std::make_tuple("", "0"),
+                                             std::make_tuple("No sentences here", "0"),
+                                             std::make_tuple("One. Two. Three.", "3"),
+                                             std::make_tuple("Multiple punctuation...!!!", "1"),
+                                             std::make_tuple("Mix. Of! Different? Endings.", "4"),
+                                             std::make_tuple("Only dots...", "1"),
+                                             std::make_tuple("Single! Exclamation!", "2"),
+                                             std::make_tuple("Question? Answer! Statement.", "3"),
+                                             std::make_tuple("Wow!!! Amazing!!! Great!!!", "3"),
+                                             std::make_tuple("A.B.C.D.E.F.G.H.I.J.", "10"),
+                                             std::make_tuple("Just one very long sentence without any ending", "0"),
+                                             std::make_tuple("Start. Middle! End?", "3")};
 
-const auto kTestTasksList =
-    std::tuple_cat(ppc::util::AddFuncTask<ShilinNCountingNumberSentencesInLineMPI, InType>(kTestParam, PPC_SETTINGS_shilin_n_counting_number_sentences_in_line),
-                   ppc::util::AddFuncTask<ShilinNCountingNumberSentencesInLineSEQ, InType>(kTestParam, PPC_SETTINGS_shilin_n_counting_number_sentences_in_line));
+const auto kTestTasksList = std::tuple_cat(ppc::util::AddFuncTask<ShilinNCountingNumberSentencesInLineMPI, InType>(
+                                               kTestParam, PPC_SETTINGS_shilin_n_counting_number_sentences_in_line),
+                                           ppc::util::AddFuncTask<ShilinNCountingNumberSentencesInLineSEQ, InType>(
+                                               kTestParam, PPC_SETTINGS_shilin_n_counting_number_sentences_in_line));
 
 const auto kGtestValues = ppc::util::ExpandToValues(kTestTasksList);
 
-const auto kPerfTestName = ShilinNCountingNumberSentencesInLineRunFuncTestsProcesses::PrintFuncTestName<ShilinNCountingNumberSentencesInLineRunFuncTestsProcesses>;
+const auto kPerfTestName = ShilinNCountingNumberSentencesInLineRunFuncTestsProcesses::PrintFuncTestName<
+    ShilinNCountingNumberSentencesInLineRunFuncTestsProcesses>;
 
-INSTANTIATE_TEST_SUITE_P(PicMatrixTests, ShilinNCountingNumberSentencesInLineRunFuncTestsProcesses, kGtestValues, kPerfTestName);
+INSTANTIATE_TEST_SUITE_P(SentenceCountingTests, ShilinNCountingNumberSentencesInLineRunFuncTestsProcesses, kGtestValues,
+                         kPerfTestName);
 
 }  // namespace
 

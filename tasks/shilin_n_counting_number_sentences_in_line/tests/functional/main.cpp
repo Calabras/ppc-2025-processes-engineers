@@ -2,7 +2,6 @@
 
 #include <array>
 #include <cctype>
-#include <cstddef>
 #include <string>
 #include <tuple>
 

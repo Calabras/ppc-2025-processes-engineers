@@ -5,9 +5,9 @@
 #include "example_processes/seq/include/ops_seq.hpp"
 #include "util/include/perf_test_util.hpp"
 
-namespace shilin_n_counting_number_sentences_in_line {
+namespace nesterov_a_test_task_processes {
 
-class ExampleRunPerfTestProcessesExample : public ppc::util::BaseRunPerfTests<InType, OutType> {
+class ExampleRunPerfTestProcesses : public ppc::util::BaseRunPerfTests<InType, OutType> {
   const int kCount_ = 100;
   InType input_data_{};
 
@@ -24,17 +24,17 @@ class ExampleRunPerfTestProcessesExample : public ppc::util::BaseRunPerfTests<In
   }
 };
 
-TEST_P(ExampleRunPerfTestProcessesExample, RunPerfModes) {
+TEST_P(ExampleRunPerfTestProcesses, RunPerfModes) {
   ExecuteTest(GetParam());
 }
 
-const auto kAllPerfTasks = ppc::util::MakeAllPerfTasks<InType, NesterovATestTaskMPI, NesterovATestTaskSEQ>(
-    PPC_SETTINGS_nesterov_a_test_task_processes);
+const auto kAllPerfTasks =
+    ppc::util::MakeAllPerfTasks<InType, NesterovATestTaskMPI, NesterovATestTaskSEQ>(PPC_SETTINGS_example_processes);
 
 const auto kGtestValues = ppc::util::TupleToGTestValues(kAllPerfTasks);
 
-const auto kPerfTestName = ExampleRunPerfTestProcessesExample::CustomPerfTestName;
+const auto kPerfTestName = ExampleRunPerfTestProcesses::CustomPerfTestName;
 
-INSTANTIATE_TEST_SUITE_P(RunModeTests, ExampleRunPerfTestProcessesExample, kGtestValues, kPerfTestName);
+INSTANTIATE_TEST_SUITE_P(RunModeTests, ExampleRunPerfTestProcesses, kGtestValues, kPerfTestName);
 
-}  // namespace shilin_n_counting_number_sentences_in_line
+}  // namespace nesterov_a_test_task_processes

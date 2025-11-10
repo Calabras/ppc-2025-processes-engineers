@@ -10,12 +10,11 @@
 namespace shilin_n_counting_number_sentences_in_line {
 
 class ShilinNCountingNumberSentencesInLinePerfTests : public ppc::util::BaseRunPerfTests<InType, OutType> {
-  InType input_data_{};
+  InType input_data_;
   OutType expected_output_ = 0;
 
   void SetUp() override {
-    // Generate a long string with many sentences for performance testing
-    const int num_sentences = 10000;
+    const int num_sentences = 1000000;
     std::string sentence = "This is a test sentence. ";
     input_data_.clear();
     input_data_.reserve(sentence.length() * num_sentences);

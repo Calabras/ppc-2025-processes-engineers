@@ -3,7 +3,7 @@
 #include "example_processes/common/include/common.hpp"
 #include "task/include/task.hpp"
 
-namespace shilin_n_counting_number_sentences_in_line {
+namespace nesterov_a_test_task_processes {
 
 class NesterovATestTaskSEQ : public BaseTask {
  public:
@@ -19,4 +19,4 @@ class NesterovATestTaskSEQ : public BaseTask {
   bool PostProcessingImpl() override;
 };
 
-}  // namespace shilin_n_counting_number_sentences_in_line
+}  // namespace nesterov_a_test_task_processes

@@ -1,9 +1,9 @@
 #include <gtest/gtest.h>
 
 #include <array>
+#include <cctype>
 #include <string>
 #include <tuple>
-#include <vector>
 
 #include "shilin_n_counting_number_sentences_in_line/common/include/common.hpp"
 #include "shilin_n_counting_number_sentences_in_line/mpi/include/ops_mpi.hpp"
@@ -19,12 +19,11 @@ class ShilinNCountingNumberSentencesInLineRunFuncTestsProcesses
     std::string input = std::get<0>(test_param);
     std::string expected = std::get<1>(test_param);
 
-    // Replace spaces and special characters with underscores for valid test names
     std::string sanitized;
     sanitized.reserve(input.length() + expected.length() + 10);
 
     for (char ch : input) {
-      if (std::isalnum(static_cast<unsigned char>(ch))) {
+      if (std::isalnum(static_cast<unsigned char>(ch)) != 0) {
         sanitized += ch;
       } else {
         sanitized += '_';
@@ -39,7 +38,7 @@ class ShilinNCountingNumberSentencesInLineRunFuncTestsProcesses
 
  protected:
   void SetUp() override {
-    TestType params = std::get<static_cast<std::size_t>(ppc::util::GTestParamIndex::kTestParams)>(GetParam());
+    auto params = std::get<2>(GetParam());
     input_data_ = std::get<0>(params);
     expected_output_ = std::stoi(std::get<1>(params));
   }
@@ -63,7 +62,6 @@ TEST_P(ShilinNCountingNumberSentencesInLineRunFuncTestsProcesses, CountSentences
   ExecuteTest(GetParam());
 }
 
-// Test cases: {input_string, expected_count_as_string}
 const std::array<TestType, 15> kTestParam = {std::make_tuple("Hello world.", "1"),
                                              std::make_tuple("Hello! How are you?", "2"),
                                              std::make_tuple("This is a test. Another sentence! And one more?", "3"),

@@ -18,7 +18,7 @@
 #include "util/include/func_test_util.hpp"
 #include "util/include/util.hpp"
 
-namespace shilin_n_counting_number_sentences_in_line {
+namespace nesterov_a_test_task_processes {
 
 class NesterovARunFuncTestsProcesses : public ppc::util::BaseRunFuncTests<InType, OutType, TestType> {
  public:
@@ -83,4 +83,4 @@ INSTANTIATE_TEST_SUITE_P(PicMatrixTests, NesterovARunFuncTestsProcesses, kGtestV
 
 }  // namespace
 
-}  // namespace shilin_n_counting_number_sentences_in_line
+}  // namespace nesterov_a_test_task_processes

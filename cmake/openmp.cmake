@@ -14,6 +14,37 @@ if(MSVC AND NOT (CMAKE_CXX_COMPILER_ID MATCHES "Clang"))
       CACHE STRING "OpenMP CXX specification date" FORCE)
 endif()
 
+# macOS with Apple Clang: find libomp from Homebrew
+if(APPLE AND CMAKE_CXX_COMPILER_ID MATCHES "Clang")
+  find_program(HOMEBREW_BREW brew)
+  if(HOMEBREW_BREW)
+    execute_process(
+      COMMAND ${HOMEBREW_BREW} --prefix libomp
+      OUTPUT_VARIABLE LIBOMP_PREFIX
+      OUTPUT_STRIP_TRAILING_WHITESPACE ERROR_QUIET)
+    if(LIBOMP_PREFIX AND EXISTS "${LIBOMP_PREFIX}/lib/libomp.dylib")
+      set(OpenMP_C_FLAGS
+          "-Xpreprocessor -fopenmp -I${LIBOMP_PREFIX}/include"
+          CACHE STRING "OpenMP C flags" FORCE)
+      set(OpenMP_CXX_FLAGS
+          "-Xpreprocessor -fopenmp -I${LIBOMP_PREFIX}/include"
+          CACHE STRING "OpenMP CXX flags" FORCE)
+      set(OpenMP_C_LIB_NAMES
+          "omp"
+          CACHE STRING "OpenMP C library names" FORCE)
+      set(OpenMP_CXX_LIB_NAMES
+          "omp"
+          CACHE STRING "OpenMP CXX library names" FORCE)
+      set(OpenMP_omp_LIBRARY
+          "${LIBOMP_PREFIX}/lib/libomp.dylib"
+          CACHE FILEPATH "OpenMP omp library" FORCE)
+      set(OpenMP_libomp_LIBRARY
+          "${LIBOMP_PREFIX}/lib/libomp.dylib"
+          CACHE FILEPATH "OpenMP libomp library" FORCE)
+    endif()
+  endif()
+endif()
+
 function(ppc_link_threads exec_func_lib)
   target_link_libraries(${exec_func_lib} PUBLIC Threads::Threads)
 endfunction()

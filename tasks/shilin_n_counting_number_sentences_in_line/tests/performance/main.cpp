@@ -1,6 +1,7 @@
 #include <gtest/gtest.h>
 
 #include <array>
+#include <cstddef>
 #include <random>
 
 #include "shilin_n_counting_number_sentences_in_line/common/include/common.hpp"
@@ -37,8 +38,8 @@ class ShilinNCountingNumberSentencesInLinePerfTests : public ppc::util::BaseRunP
         }
       }
 
-      constexpr std::array<char, 3> punctuation = {'.', '!', '?'};
-      input_data_ += punctuation[static_cast<size_t>(punct_dist(gen))];
+      constexpr std::array<char, 3> kPunctuation = {'.', '!', '?'};
+      input_data_ += kPunctuation.at(static_cast<size_t>(punct_dist(gen)));
       input_data_ += ' ';
       expected_output_++;
     }

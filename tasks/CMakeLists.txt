@@ -23,8 +23,7 @@ file(
   "${CMAKE_CURRENT_SOURCE_DIR}/*")
 foreach(sub IN LISTS subdirs)
   if(IS_DIRECTORY "${CMAKE_CURRENT_SOURCE_DIR}/${sub}" AND NOT sub STREQUAL
-                                                           "common" AND NOT sub STREQUAL
-                                                           "example_processes")
+                                                           "common")
     ppc_configure_subproject(${sub})
   endif()
 endforeach()

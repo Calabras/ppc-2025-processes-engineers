@@ -1,7 +1,7 @@
 #include <gtest/gtest.h>
 
+#include <array>
 #include <random>
-#include <string>
 
 #include "shilin_n_counting_number_sentences_in_line/common/include/common.hpp"
 #include "shilin_n_counting_number_sentences_in_line/mpi/include/ops_mpi.hpp"
@@ -18,7 +18,7 @@ class ShilinNCountingNumberSentencesInLinePerfTests : public ppc::util::BaseRunP
     const int num_sentences = 1000000;
     input_data_.clear();
 
-    std::mt19937 gen(42);
+    std::mt19937 gen(42);  // NOLINT(cert-msc51-cpp) - Deterministic seed for reproducible performance tests
     std::uniform_int_distribution<> word_count_dist(3, 10);
     std::uniform_int_distribution<> word_len_dist(3, 8);
     std::uniform_int_distribution<> punct_dist(0, 2);
@@ -37,8 +37,8 @@ class ShilinNCountingNumberSentencesInLinePerfTests : public ppc::util::BaseRunP
         }
       }
 
-      const char punctuation[] = {'.', '!', '?'};
-      input_data_ += punctuation[punct_dist(gen)];
+      constexpr std::array<char, 3> punctuation = {'.', '!', '?'};
+      input_data_ += punctuation[static_cast<size_t>(punct_dist(gen))];
       input_data_ += ' ';
       expected_output_++;
     }

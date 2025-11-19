@@ -380,7 +380,7 @@ export OMPI_MCA_pmix_tool_enable=0
   - Каждое предложение содержит 3-10 слов
   - Каждое слово содержит 3-8 случайных букв (a-z)
   - Предложения завершаются одним из трех знаков: `.`, `!`, `?`
-  - Используется детерминированный генератор (seed=42) для воспроизводимости результатов
+  - Используется `std::random_device` для генерации случайных данных
 
 Реализация генерации тестовых данных представлена в [Приложении №3](#приложение-3--генерация-тестовых-данных-для-тестов-производительности).
 
@@ -627,7 +627,8 @@ void SetUp() override {
   const int num_sentences = 1000000;
   input_data_.clear();
 
-  std::mt19937 gen(42);  // NOLINT(cert-msc51-cpp) - Deterministic seed for reproducible performance tests
+  std::random_device rd;
+  std::mt19937 gen(rd());
   std::uniform_int_distribution<> word_count_dist(3, 10);
   std::uniform_int_distribution<> word_len_dist(3, 8);
   std::uniform_int_distribution<> punct_dist(0, 2);

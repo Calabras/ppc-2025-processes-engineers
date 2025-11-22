@@ -112,7 +112,9 @@ function RunImpl():
    - Каждый процесс получает свой ранг (`rank`) и общее количество процессов (`size`)
 
 2. **Передача входных данных:**
-   - Процесс с рангом 0 (главный процесс) получает входную строку
+   - В конструкторе класса входные данные присваиваются только процессу с рангом 0 (главный процесс)
+   - Процессы с рангом 1..N-1 не получают входные данные в конструкторе
+   - В методе `RunImpl()` процесс 0 берет данные из `GetInput()`
    - Длина строки распространяется на все процессы через `MPI_Bcast`
    - Сама строка распространяется на все процессы через `MPI_Bcast`
 
@@ -169,6 +171,15 @@ function RunImpl():
 ### 4.5. Псевдокод параллельной реализации
 
 ```cpp
+// Конструктор
+constructor ShilinNCountingNumberSentencesInLineMPI(in):
+    SetTypeOfTask(GetStaticTypeOfTask())
+    rank = MPI_Comm_rank(MPI_COMM_WORLD)
+    if rank == 0:
+        GetInput() = in  // Входные данные только на процессе 0
+    GetOutput() = 0
+
+// Основной метод
 function RunImpl():
     rank = MPI_Comm_rank(MPI_COMM_WORLD)
     size = MPI_Comm_size(MPI_COMM_WORLD)
@@ -213,13 +224,10 @@ function RunImpl():
     MPI_Reduce(&local_count, &global_count, 1, MPI_INT, MPI_SUM, 0, MPI_COMM_WORLD)
     
     // Распространение результата
-    if rank == 0:
-        GetOutput() = global_count
-    
     MPI_Bcast(&global_count, 1, MPI_INT, 0, MPI_COMM_WORLD)
     
-    if rank != 0:
-        GetOutput() = global_count
+    // Все процессы получают итоговый результат
+    GetOutput() = global_count
     
     return true
 ```
@@ -552,6 +560,20 @@ bool ShilinNCountingNumberSentencesInLineSEQ::RunImpl() {
 
 **Файл:** `mpi/src/ops_mpi.cpp`
 
+**Конструктор:**
+```cpp
+ShilinNCountingNumberSentencesInLineMPI::ShilinNCountingNumberSentencesInLineMPI(const InType &in) {
+  SetTypeOfTask(GetStaticTypeOfTask());
+  int rank = 0;
+  MPI_Comm_rank(MPI_COMM_WORLD, &rank);
+  if (rank == 0) {
+    GetInput() = in;  // Входные данные присваиваются только процессу 0
+  }
+  GetOutput() = 0;
+}
+```
+
+**Основной метод:**
 ```cpp
 bool ShilinNCountingNumberSentencesInLineMPI::RunImpl() {
   int rank = 0;
@@ -604,16 +626,9 @@ bool ShilinNCountingNumberSentencesInLineMPI::RunImpl() {
 
   int global_count = 0;
   MPI_Reduce(&local_count, &global_count, 1, MPI_INT, MPI_SUM, 0, MPI_COMM_WORLD);
-
-  if (rank == 0) {
-    GetOutput() = global_count;
-  }
   MPI_Bcast(&global_count, 1, MPI_INT, 0, MPI_COMM_WORLD);
-  
-  if (rank != 0) {
-    GetOutput() = global_count;
-  }
 
+  GetOutput() = global_count;
   return true;
 }
 ```

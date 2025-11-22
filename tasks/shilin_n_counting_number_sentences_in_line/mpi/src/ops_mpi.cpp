@@ -11,7 +11,11 @@ namespace shilin_n_counting_number_sentences_in_line {
 
 ShilinNCountingNumberSentencesInLineMPI::ShilinNCountingNumberSentencesInLineMPI(const InType &in) {
   SetTypeOfTask(GetStaticTypeOfTask());
-  GetInput() = in;
+  int rank = 0;
+  MPI_Comm_rank(MPI_COMM_WORLD, &rank);
+  if (rank == 0) {
+    GetInput() = in;
+  }
   GetOutput() = 0;
 }
 

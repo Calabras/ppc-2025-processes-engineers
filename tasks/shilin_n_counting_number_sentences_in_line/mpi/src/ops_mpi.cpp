@@ -76,13 +76,49 @@ bool ShilinNCountingNumberSentencesInLineMPI::RunImpl() {
   int start_pos = (rank * chunk_size) + std::min(rank, remainder);
   int end_pos = start_pos + chunk_size + (rank < remainder ? 1 : 0);
 
+  // Получаем граничный символ слева от текущего чанка
+  // (последний символ предыдущего чанка)
+  char left_boundary_char = '\0';
+  if (start_pos > 0) {
+    left_boundary_char = input_str[start_pos - 1];
+  }
+
+  // Проверяем, является ли символ знаком препинания
+  auto is_punctuation = [](char c) { return c == '.' || c == '!' || c == '?'; };
+
   int local_count = 0;
-  for (int i = start_pos; i < end_pos; ++i) {
-    char ch = input_str[i];
-    if (ch == '.' || ch == '!' || ch == '?') {
-      local_count++;
-      while (i + 1 < end_pos && (input_str[i + 1] == '.' || input_str[i + 1] == '!' || input_str[i + 1] == '?')) {
-        ++i;
+
+  // Если первый символ чанка - знак препинания и левый граничный символ тоже
+  // знак препинания, то это продолжение последовательности из предыдущего чанка
+  // Нужно пропустить все последовательные знаки препинания в начале чанка
+  if (start_pos > 0 && is_punctuation(left_boundary_char) && start_pos < input_length &&
+      is_punctuation(input_str[start_pos])) {
+    // Пропускаем все последовательные знаки препинания в начале чанка
+    int i = start_pos;
+    while (i < end_pos && is_punctuation(input_str[i])) {
+      ++i;
+    }
+    // Начинаем подсчет с позиции после пропущенных знаков препинания
+    for (; i < end_pos; ++i) {
+      char ch = input_str[i];
+      if (is_punctuation(ch)) {
+        local_count++;
+        // Пропускаем все последующие последовательные знаки препинания
+        while (i + 1 < end_pos && is_punctuation(input_str[i + 1])) {
+          ++i;
+        }
+      }
+    }
+  } else {
+    // Обычный подсчет, начинаем с начала чанка
+    for (int i = start_pos; i < end_pos; ++i) {
+      char ch = input_str[i];
+      if (is_punctuation(ch)) {
+        local_count++;
+        // Пропускаем все последующие последовательные знаки препинания
+        while (i + 1 < end_pos && is_punctuation(input_str[i + 1])) {
+          ++i;
+        }
       }
     }
   }

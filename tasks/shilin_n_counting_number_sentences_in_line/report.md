@@ -164,9 +164,26 @@ function RunImpl():
 
 1. **Инициализация MPI** - получение ранга и числа процессов
 2. **Распределение данных** - вычисление границ локального сегмента
-3. **Локальные вычисления** - подсчет предложений в назначенном сегменте
-4. **Глобальная редукция** - объединение локальных счетчиков
-5. **Синхронизация** - рассылка финального результата всем процессам
+3. **Обработка граничных случаев** - проверка границы между чанками для корректного подсчета последовательных знаков препинания
+4. **Локальные вычисления** - подсчет предложений в назначенном сегменте
+5. **Глобальная редукция** - объединение локальных счетчиков
+6. **Синхронизация** - рассылка финального результата всем процессам
+
+**Обработка граничных случаев:**
+
+При разбиении строки на части по байтам, последовательность знаков препинания может быть разорвана на границе между чанками. Например, строка "abc..def" при разбиении так, что первая точка попадает в конец чанка rank 0, а вторая точка в начало чанка rank 1, может быть неправильно посчитана как два предложения вместо одного.
+
+**Решение:**
+- Каждый процесс (кроме rank 0) проверяет граничный символ слева от своего чанка (последний символ предыдущего чанка)
+- Если первый символ текущего чанка - знак препинания, и левый граничный символ тоже знак препинания, то это продолжение последовательности из предыдущего чанка
+- В этом случае все последовательные знаки препинания в начале чанка пропускаются (не считаются как новое предложение)
+- Подсчет начинается с первого символа после последовательности знаков препинания
+
+**Пример:**
+- Строка: "abc..def"
+- Rank 0: чанк "abc." - находит точку в позиции 3, считает 1 предложение
+- Rank 1: чанк ".def" - левый граничный символ = '.', первый символ = '.', пропускает точку в начале, продолжает подсчет, не находит других знаков препинания, считает 0 предложений
+- Итого: 1 + 0 = 1 предложение ✓
 
 ### 4.5. Псевдокод параллельной реализации
 
@@ -208,16 +225,42 @@ function RunImpl():
     start_pos = rank * chunk_size + min(rank, remainder)
     end_pos = start_pos + chunk_size + (rank < remainder ? 1 : 0)
     
+    // Получение граничного символа слева (последний символ предыдущего чанка)
+    left_boundary_char = '\0'
+    if start_pos > 0:
+        left_boundary_char = input_str[start_pos - 1]
+    
+    // Функция проверки знака препинания
+    is_punctuation(ch) = (ch == '.' OR ch == '!' OR ch == '?')
+    
     // Локальный подсчет предложений
     local_count = 0
-    for i = start_pos to end_pos - 1:
-        ch = input_str[i]
-        if ch == '.' OR ch == '!' OR ch == '?':
-            local_count = local_count + 1
-            // Пропустить последовательные знаки препинания
-            while i + 1 < end_pos AND 
-                  (input_str[i + 1] == '.' OR input_str[i + 1] == '!' OR input_str[i + 1] == '?'):
-                i = i + 1
+    
+    // Обработка граничного случая: если первый символ чанка - знак препинания
+    // и левый граничный символ тоже знак препинания, пропускаем последовательность
+    if start_pos > 0 AND is_punctuation(left_boundary_char) AND 
+       start_pos < input_length AND is_punctuation(input_str[start_pos]):
+        // Пропускаем все последовательные знаки препинания в начале чанка
+        i = start_pos
+        while i < end_pos AND is_punctuation(input_str[i]):
+            i = i + 1
+        // Начинаем подсчет с позиции после пропущенных знаков
+        for i = i to end_pos - 1:
+            ch = input_str[i]
+            if is_punctuation(ch):
+                local_count = local_count + 1
+                // Пропустить последовательные знаки препинания
+                while i + 1 < end_pos AND is_punctuation(input_str[i + 1]):
+                    i = i + 1
+    else:
+        // Обычный подсчет с начала чанка
+        for i = start_pos to end_pos - 1:
+            ch = input_str[i]
+            if is_punctuation(ch):
+                local_count = local_count + 1
+                // Пропустить последовательные знаки препинания
+                while i + 1 < end_pos AND is_punctuation(input_str[i + 1]):
+                    i = i + 1
     
     // Глобальное суммирование
     global_count = 0
@@ -607,19 +650,47 @@ bool ShilinNCountingNumberSentencesInLineMPI::RunImpl() {
   int chunk_size = input_length / size;
   int remainder = input_length % size;
 
-  int start_pos = rank * chunk_size + std::min(rank, remainder);
+  int start_pos = (rank * chunk_size) + std::min(rank, remainder);
   int end_pos = start_pos + chunk_size + (rank < remainder ? 1 : 0);
 
+  // Получаем граничный символ слева от текущего чанка
+  char left_boundary_char = '\0';
+  if (start_pos > 0) {
+    left_boundary_char = input_str[start_pos - 1];
+  }
+
+  auto is_punctuation = [](char c) { return c == '.' || c == '!' || c == '?'; };
+
   int local_count = 0;
-  for (int i = start_pos; i < end_pos; ++i) {
-    char ch = input_str[i];
-    if (ch == '.' || ch == '!' || ch == '?') {
-      local_count++;
-      while (i + 1 < end_pos && 
-             (input_str[i + 1] == '.' || 
-              input_str[i + 1] == '!' || 
-              input_str[i + 1] == '?')) {
-        ++i;
+
+  // Обработка граничного случая: пропуск последовательных знаков препинания
+  // на границе между чанками
+  if (start_pos > 0 && is_punctuation(left_boundary_char) && 
+      start_pos < input_length && is_punctuation(input_str[start_pos])) {
+    // Пропускаем все последовательные знаки препинания в начале чанка
+    int i = start_pos;
+    while (i < end_pos && is_punctuation(input_str[i])) {
+      ++i;
+    }
+    // Начинаем подсчет с позиции после пропущенных знаков препинания
+    for (; i < end_pos; ++i) {
+      char ch = input_str[i];
+      if (is_punctuation(ch)) {
+        local_count++;
+        while (i + 1 < end_pos && is_punctuation(input_str[i + 1])) {
+          ++i;
+        }
+      }
+    }
+  } else {
+    // Обычный подсчет, начинаем с начала чанка
+    for (int i = start_pos; i < end_pos; ++i) {
+      char ch = input_str[i];
+      if (is_punctuation(ch)) {
+        local_count++;
+        while (i + 1 < end_pos && is_punctuation(input_str[i + 1])) {
+          ++i;
+        }
       }
     }
   }

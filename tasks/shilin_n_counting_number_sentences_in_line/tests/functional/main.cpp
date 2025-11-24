@@ -2,6 +2,8 @@
 
 #include <array>
 #include <cctype>
+#include <cstddef>
+#include <functional>
 #include <string>
 #include <tuple>
 
@@ -20,7 +22,7 @@ class ShilinNCountingNumberSentencesInLineRunFuncTestsProcesses
     std::string expected = std::get<1>(test_param);
 
     std::string sanitized;
-    sanitized.reserve(input.length() + expected.length() + 10);
+    sanitized.reserve(input.length() + expected.length() + 20);
 
     for (char ch : input) {
       if (std::isalnum(static_cast<unsigned char>(ch)) != 0) {
@@ -30,8 +32,12 @@ class ShilinNCountingNumberSentencesInLineRunFuncTestsProcesses
       }
     }
 
+    // Add hash of original input to ensure uniqueness for tests with similar sanitized names
+    std::size_t input_hash = std::hash<std::string>{}(input);
     sanitized += "_count_";
     sanitized += expected;
+    sanitized += "_";
+    sanitized += std::to_string(input_hash % 10000);  // Use last 4 digits of hash for brevity
 
     return sanitized;
   }

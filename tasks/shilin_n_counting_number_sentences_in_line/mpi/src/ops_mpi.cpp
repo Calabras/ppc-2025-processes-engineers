@@ -50,8 +50,8 @@ bool IsPunctuation(char c) {
 }
 }  // namespace
 
-int ShilinNCountingNumberSentencesInLineMPI::SkipPunctuationSequence(const std::string &input_str,
-                                                                      int start_pos, int end_pos) {
+int ShilinNCountingNumberSentencesInLineMPI::SkipPunctuationSequence(const std::string &input_str, int start_pos,
+                                                                     int end_pos) {
   int pos = start_pos;
   while (pos < end_pos && IsPunctuation(input_str[static_cast<size_t>(pos)])) {
     ++pos;
@@ -59,8 +59,8 @@ int ShilinNCountingNumberSentencesInLineMPI::SkipPunctuationSequence(const std::
   return pos;
 }
 
-int ShilinNCountingNumberSentencesInLineMPI::CountSentencesFromPosition(const std::string &input_str,
-                                                                         int start_pos, int end_pos) {
+int ShilinNCountingNumberSentencesInLineMPI::CountSentencesFromPosition(const std::string &input_str, int start_pos,
+                                                                        int end_pos) {
   int count = 0;
   for (int i = start_pos; i < end_pos; ++i) {
     if (IsPunctuation(input_str[static_cast<size_t>(i)])) {
@@ -72,15 +72,13 @@ int ShilinNCountingNumberSentencesInLineMPI::CountSentencesFromPosition(const st
   return count;
 }
 
-int ShilinNCountingNumberSentencesInLineMPI::CountSentencesInChunk(const std::string &input_str,
-                                                                    int start_pos, int end_pos,
-                                                                    char left_boundary_char) {
+int ShilinNCountingNumberSentencesInLineMPI::CountSentencesInChunk(const std::string &input_str, int start_pos,
+                                                                   int end_pos, char left_boundary_char) {
   // Если первый символ чанка - знак препинания и левый граничный символ тоже
   // знак препинания, то это продолжение последовательности из предыдущего чанка
-  const bool skip_start =
-      start_pos > 0 && IsPunctuation(left_boundary_char) &&
-      std::cmp_less(start_pos, input_str.length()) &&
-      IsPunctuation(input_str[static_cast<size_t>(start_pos)]);
+  const bool skip_start = start_pos > 0 && IsPunctuation(left_boundary_char) &&
+                          std::cmp_less(start_pos, input_str.length()) &&
+                          IsPunctuation(input_str[static_cast<size_t>(start_pos)]);
 
   if (skip_start) {
     // Пропускаем все последовательные знаки препинания в начале чанка

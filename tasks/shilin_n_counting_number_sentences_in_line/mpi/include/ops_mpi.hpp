@@ -21,8 +21,7 @@ class ShilinNCountingNumberSentencesInLineMPI : public BaseTask {
   bool PostProcessingImpl() override;
 
   // Helper function to count sentences in a chunk
-  static int CountSentencesInChunk(const std::string &input_str, int start_pos, int end_pos,
-                                    char left_boundary_char);
+  static int CountSentencesInChunk(const std::string &input_str, int start_pos, int end_pos, char left_boundary_char);
 
   // Skip consecutive punctuation marks starting from given position
   static int SkipPunctuationSequence(const std::string &input_str, int start_pos, int end_pos);

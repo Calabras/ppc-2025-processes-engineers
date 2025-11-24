@@ -62,7 +62,7 @@ TEST_P(ShilinNCountingNumberSentencesInLineRunFuncTestsProcesses, CountSentences
   ExecuteTest(GetParam());
 }
 
-const std::array<TestType, 20> kTestParam = {
+const std::array<TestType, 24> kTestParam = {
     std::make_tuple("Hello world.", "1"),
     std::make_tuple("Hello! How are you?", "2"),
     std::make_tuple("This is a test. Another sentence! And one more?", "3"),

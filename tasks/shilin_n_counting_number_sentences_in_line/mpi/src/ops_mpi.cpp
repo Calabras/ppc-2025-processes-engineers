@@ -3,7 +3,9 @@
 #include <mpi.h>
 
 #include <algorithm>
+#include <cstddef>
 #include <string>
+#include <utility>
 
 #include "shilin_n_counting_number_sentences_in_line/common/include/common.hpp"
 
@@ -41,49 +43,54 @@ bool ShilinNCountingNumberSentencesInLineMPI::PreProcessingImpl() {
   return true;
 }
 
+namespace {
+// Helper function to check if character is punctuation
+bool IsPunctuation(char c) {
+  return c == '.' || c == '!' || c == '?';
+}
+}  // namespace
+
+int ShilinNCountingNumberSentencesInLineMPI::SkipPunctuationSequence(const std::string &input_str,
+                                                                      int start_pos, int end_pos) {
+  int pos = start_pos;
+  while (pos < end_pos && IsPunctuation(input_str[static_cast<size_t>(pos)])) {
+    ++pos;
+  }
+  return pos;
+}
+
+int ShilinNCountingNumberSentencesInLineMPI::CountSentencesFromPosition(const std::string &input_str,
+                                                                         int start_pos, int end_pos) {
+  int count = 0;
+  for (int i = start_pos; i < end_pos; ++i) {
+    if (IsPunctuation(input_str[static_cast<size_t>(i)])) {
+      count++;
+      // Пропускаем все последующие последовательные знаки препинания
+      i = SkipPunctuationSequence(input_str, i + 1, end_pos) - 1;
+    }
+  }
+  return count;
+}
+
 int ShilinNCountingNumberSentencesInLineMPI::CountSentencesInChunk(const std::string &input_str,
                                                                     int start_pos, int end_pos,
                                                                     char left_boundary_char) {
-  auto is_punctuation = [](char c) { return c == '.' || c == '!' || c == '?'; };
-
-  int local_count = 0;
-
   // Если первый символ чанка - знак препинания и левый граничный символ тоже
   // знак препинания, то это продолжение последовательности из предыдущего чанка
-  if (start_pos > 0 && is_punctuation(left_boundary_char) &&
-      start_pos < static_cast<int>(input_str.length()) &&
-      is_punctuation(input_str[static_cast<size_t>(start_pos)])) {
+  const bool skip_start =
+      start_pos > 0 && IsPunctuation(left_boundary_char) &&
+      std::cmp_less(start_pos, input_str.length()) &&
+      IsPunctuation(input_str[static_cast<size_t>(start_pos)]);
+
+  if (skip_start) {
     // Пропускаем все последовательные знаки препинания в начале чанка
-    int i = start_pos;
-    while (i < end_pos && is_punctuation(input_str[static_cast<size_t>(i)])) {
-      ++i;
-    }
+    const int new_start_pos = SkipPunctuationSequence(input_str, start_pos, end_pos);
     // Начинаем подсчет с позиции после пропущенных знаков препинания
-    for (; i < end_pos; ++i) {
-      char ch = input_str[static_cast<size_t>(i)];
-      if (is_punctuation(ch)) {
-        local_count++;
-        // Пропускаем все последующие последовательные знаки препинания
-        while (i + 1 < end_pos && is_punctuation(input_str[static_cast<size_t>(i + 1)])) {
-          ++i;
-        }
-      }
-    }
-  } else {
-    // Обычный подсчет, начинаем с начала чанка
-    for (int i = start_pos; i < end_pos; ++i) {
-      char ch = input_str[static_cast<size_t>(i)];
-      if (is_punctuation(ch)) {
-        local_count++;
-        // Пропускаем все последующие последовательные знаки препинания
-        while (i + 1 < end_pos && is_punctuation(input_str[static_cast<size_t>(i + 1)])) {
-          ++i;
-        }
-      }
-    }
+    return CountSentencesFromPosition(input_str, new_start_pos, end_pos);
   }
 
-  return local_count;
+  // Обычный подсчет, начинаем с начала чанка
+  return CountSentencesFromPosition(input_str, start_pos, end_pos);
 }
 
 bool ShilinNCountingNumberSentencesInLineMPI::RunImpl() {

@@ -63,31 +63,24 @@ TEST_P(ShilinNCountingNumberSentencesInLineRunFuncTestsProcesses, CountSentences
 }
 
 const std::array<TestType, 24> kTestParam = {
-    std::make_tuple("Hello world.", "1"),
-    std::make_tuple("Hello! How are you?", "2"),
-    std::make_tuple("This is a test. Another sentence! And one more?", "3"),
-    std::make_tuple("", "0"),
-    std::make_tuple("No sentences here", "0"),
-    std::make_tuple("One. Two. Three.", "3"),
-    std::make_tuple("Multiple punctuation...!!!", "1"),
-    std::make_tuple("Mix. Of! Different? Endings.", "4"),
-    std::make_tuple("Only dots...", "1"),
-    std::make_tuple("Single! Exclamation!", "2"),
-    std::make_tuple("Question? Answer! Statement.", "3"),
-    std::make_tuple("Wow!!! Amazing!!! Great!!!", "3"),
+    std::make_tuple("Hello world.", "1"), std::make_tuple("Hello! How are you?", "2"),
+    std::make_tuple("This is a test. Another sentence! And one more?", "3"), std::make_tuple("", "0"),
+    std::make_tuple("No sentences here", "0"), std::make_tuple("One. Two. Three.", "3"),
+    std::make_tuple("Multiple punctuation...!!!", "1"), std::make_tuple("Mix. Of! Different? Endings.", "4"),
+    std::make_tuple("Only dots...", "1"), std::make_tuple("Single! Exclamation!", "2"),
+    std::make_tuple("Question? Answer! Statement.", "3"), std::make_tuple("Wow!!! Amazing!!! Great!!!", "3"),
     std::make_tuple("A.B.C.D.E.F.G.H.I.J.", "10"),
-    std::make_tuple("Just one very long sentence without any ending", "0"),
-    std::make_tuple("Start. Middle! End?", "3"),
+    std::make_tuple("Just one very long sentence without any ending", "0"), std::make_tuple("Start. Middle! End?", "3"),
     // Дополнительные граничные случаи
-    std::make_tuple("A.", "1"),                    // Один символ с точкой
-    std::make_tuple(".!?", "1"),                   // Смешанная пунктуация в одном месте
-    std::make_tuple("!?.", "1"),                   // Смешанная пунктуация в обратном порядке
-    std::make_tuple("Hello . World !", "2"),       // Пробелы вокруг знаков препинания
-    std::make_tuple("A.B.C", "3"),                  // Минимальные предложения
-    std::make_tuple("abc..def.", "1"),              // Последовательные точки на границе чанка
-    std::make_tuple("abc...def.", "1"),             // Многоточие на границе чанка
-    std::make_tuple("abc!!!def.", "2"),             // Многоточие и точка на границе
-    std::make_tuple("abc.!?def.", "2")              // Смешанная пунктуация на границе
+    std::make_tuple("A.", "1"),               // Один символ с точкой
+    std::make_tuple(".!?", "1"),              // Смешанная пунктуация в одном месте
+    std::make_tuple("!?.", "1"),              // Смешанная пунктуация в обратном порядке
+    std::make_tuple("Hello . World !", "2"),  // Пробелы вокруг знаков препинания
+    std::make_tuple("A.B.C", "3"),            // Минимальные предложения
+    std::make_tuple("abc..def.", "1"),        // Последовательные точки на границе чанка
+    std::make_tuple("abc...def.", "1"),       // Многоточие на границе чанка
+    std::make_tuple("abc!!!def.", "2"),       // Многоточие и точка на границе
+    std::make_tuple("abc.!?def.", "2")        // Смешанная пунктуация на границе
 };
 
 const auto kTestTasksList = std::tuple_cat(ppc::util::AddFuncTask<ShilinNCountingNumberSentencesInLineMPI, InType>(

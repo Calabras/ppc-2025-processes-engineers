@@ -17,6 +17,10 @@ class ShilinNCountingNumberSentencesInLineMPI : public BaseTask {
   bool PreProcessingImpl() override;
   bool RunImpl() override;
   bool PostProcessingImpl() override;
+
+  // Helper function to count sentences in a chunk
+  static int CountSentencesInChunk(const std::string &input_str, int start_pos, int end_pos,
+                                    char left_boundary_char);
 };
 
 }  // namespace shilin_n_counting_number_sentences_in_line

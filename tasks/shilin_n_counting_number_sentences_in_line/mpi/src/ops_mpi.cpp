@@ -48,7 +48,7 @@ namespace {
 bool IsPunctuation(char c) {
   return c == '.' || c == '!' || c == '?';
 }
-}
+}  // namespace
 
 int ShilinNCountingNumberSentencesInLineMPI::SkipPunctuationSequence(const std::string &input_str, int start_pos,
                                                                      int end_pos) {

@@ -5,7 +5,6 @@
 #include <algorithm>
 #include <cstddef>
 #include <string>
-#include <utility>
 #include <vector>
 
 #include "shilin_n_counting_number_sentences_in_line/common/include/common.hpp"

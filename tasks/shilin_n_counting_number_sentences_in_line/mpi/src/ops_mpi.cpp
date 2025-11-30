@@ -74,11 +74,8 @@ int ShilinNCountingNumberSentencesInLineMPI::CountSentencesFromPosition(const st
 
 int ShilinNCountingNumberSentencesInLineMPI::CountSentencesInChunk(const std::string &input_str, int start_pos,
                                                                    int end_pos, char left_boundary_char) {
-  const bool skip_start = start_pos > 0 && IsPunctuation(left_boundary_char) &&
-                          std::cmp_less(start_pos, input_str.length()) &&
-                          IsPunctuation(input_str[static_cast<size_t>(start_pos)]);
-
-  if (skip_start) {
+  if (start_pos < end_pos && IsPunctuation(left_boundary_char) &&
+      IsPunctuation(input_str[static_cast<size_t>(start_pos)])) {
     const int new_start_pos = SkipPunctuationSequence(input_str, start_pos, end_pos);
     return CountSentencesFromPosition(input_str, new_start_pos, end_pos);
   }
@@ -115,14 +112,12 @@ bool ShilinNCountingNumberSentencesInLineMPI::RunImpl() {
   std::vector<int> sendcounts(size);
   std::vector<int> displacements(size);
 
-  if (rank == 0) {
-    for (int i = 0; i < size; ++i) {
-      sendcounts[i] = chunk_size + (i < remainder ? 1 : 0);
-      displacements[i] = (i * chunk_size) + std::min(i, remainder);
-    }
+  for (int i = 0; i < size; ++i) {
+    sendcounts[i] = chunk_size + (i < remainder ? 1 : 0);
+    displacements[i] = (i * chunk_size) + std::min(i, remainder);
   }
 
-  int local_chunk_size = chunk_size + (rank < remainder ? 1 : 0);
+  int local_chunk_size = sendcounts[rank];
   std::string local_chunk(local_chunk_size, '\0');
 
   MPI_Scatterv(rank == 0 ? input_str.data() : nullptr, sendcounts.data(), displacements.data(), MPI_CHAR,

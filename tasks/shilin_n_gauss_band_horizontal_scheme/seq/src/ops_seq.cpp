@@ -58,6 +58,7 @@ bool ShilinNGaussBandHorizontalSchemeSEQ::RunImpl() {
   }
 
   for (size_t k = 0; k < n; ++k) {
+    //поиск ведущего элемента для уменьшения ошибок округления
     size_t max_row = k;
     double max_val = std::abs(augmented_matrix[k][k]);
 
@@ -72,6 +73,7 @@ bool ShilinNGaussBandHorizontalSchemeSEQ::RunImpl() {
       std::swap(augmented_matrix[k], augmented_matrix[max_row]);
     }
 
+    //проверка на вырожденность матрицы
     if (std::abs(augmented_matrix[k][k]) < 1e-10) {
       return false;
     }
@@ -86,6 +88,7 @@ bool ShilinNGaussBandHorizontalSchemeSEQ::RunImpl() {
     }
   }
 
+  //обратный ход метода гаусса
   std::vector<double> x(n, 0.0);
   for (int i = static_cast<int>(n) - 1; i >= 0; --i) {
     double sum = 0.0;

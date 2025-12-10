@@ -98,8 +98,7 @@ bool ShilinNGaussFilterVerticalSplitMPI::RunImpl() {
   }
 
   // NOLINTNEXTLINE(readability-suspicious-call-argument)
-  GatherVerticalStripes(local_output, output_pixels, width, height, channels, rank, size, local_width,
-                        local_start_col);
+  GatherVerticalStripes(local_output, output_pixels, width, height, channels, rank, size, local_width, local_start_col);
 
   if (rank == 0) {
     GetOutput() = output_pixels;
@@ -253,11 +252,11 @@ void ShilinNGaussFilterVerticalSplitMPI::ApplyGaussianKernelMPI(const std::vecto
   }
 }
 
-//NOLINTNEXTLINE(readability-function-cognitive-complexity)
+// NOLINTNEXTLINE(readability-function-cognitive-complexity)
 void ShilinNGaussFilterVerticalSplitMPI::GatherVerticalStripes(const std::vector<uint8_t> &local_data,
-                                                                 std::vector<uint8_t> &output, int width, int height,
-                                                                 int channels, int rank, int size, int local_width,
-                                                                 int /* local_start_col */) {
+                                                               std::vector<uint8_t> &output, int width, int height,
+                                                               int channels, int rank, int size, int local_width,
+                                                               int local_start_col) {
   int base_cols_per_proc = width / size;
   int remainder = width % size;
 
@@ -306,7 +305,27 @@ void ShilinNGaussFilterVerticalSplitMPI::GatherVerticalStripes(const std::vector
     }
   } else {
     // остальные процессы отправляют свои данные процессу 0
-    MPI_Send(local_data.data(), static_cast<int>(local_data.size()), MPI_UNSIGNED_CHAR, 0, 0, MPI_COMM_WORLD);
+    // отправляем только unpadded данные (без halo колонок)
+    std::vector<uint8_t> unpadded_data(static_cast<size_t>(local_width) * static_cast<size_t>(height) *
+                                       static_cast<size_t>(channels));
+    int left_padding = (local_start_col > 0) ? 1 : 0;
+    int extended_width = local_width + left_padding + ((local_start_col + local_width < width) ? 1 : 0);
+
+    for (int row = 0; row < height; ++row) {
+      for (int col = 0; col < local_width; ++col) {
+        for (int ch = 0; ch < channels; ++ch) {
+          size_t src_idx =
+              (static_cast<size_t>(row) * static_cast<size_t>(extended_width) * static_cast<size_t>(channels)) +
+              (static_cast<size_t>(col + left_padding) * static_cast<size_t>(channels)) + static_cast<size_t>(ch);
+          size_t dst_idx =
+              (static_cast<size_t>(row) * static_cast<size_t>(local_width) * static_cast<size_t>(channels)) +
+              (static_cast<size_t>(col) * static_cast<size_t>(channels)) + static_cast<size_t>(ch);
+          unpadded_data[dst_idx] = local_data[src_idx];
+        }
+      }
+    }
+
+    MPI_Send(unpadded_data.data(), static_cast<int>(unpadded_data.size()), MPI_UNSIGNED_CHAR, 0, 0, MPI_COMM_WORLD);
   }
 }
 

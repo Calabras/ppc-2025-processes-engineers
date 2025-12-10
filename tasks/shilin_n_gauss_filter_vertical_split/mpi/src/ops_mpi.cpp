@@ -204,55 +204,60 @@ void ShilinNGaussFilterVerticalSplitMPI::CopyLocalData(const std::vector<uint8_t
   }
 }
 
-// NOLINTNEXTLINE(readability-function-cognitive-complexity)
 void ShilinNGaussFilterVerticalSplitMPI::ApplyGaussianKernelMPI(const std::vector<uint8_t> &local_input,
                                                                 std::vector<uint8_t> &local_output, int local_width,
                                                                 int local_start_col, int width, int height,
                                                                 int channels) {
-  // ядро гаусса 3x3
-  constexpr std::array<std::array<double, 3>, 3> kKernel = {{{{1.0 / 16.0, 2.0 / 16.0, 1.0 / 16.0}},
-                                                             {{2.0 / 16.0, 4.0 / 16.0, 2.0 / 16.0}},
-                                                             {{1.0 / 16.0, 2.0 / 16.0, 1.0 / 16.0}}}};
-
   int left_padding = (local_start_col > 0) ? 1 : 0;
   int right_padding = (local_start_col + local_width < width) ? 1 : 0;
   int extended_width = local_width + left_padding + right_padding;
 
   for (int row = 0; row < height; ++row) {
     for (int local_col = 0; local_col < local_width; ++local_col) {
-      int col_in_extended = local_col + left_padding;
-
-      for (int ch = 0; ch < channels; ++ch) {
-        double sum = 0.0;
-
-        for (int ky = -1; ky <= 1; ++ky) {
-          for (int kx = -1; kx <= 1; ++kx) {
-            int px = col_in_extended + kx;
-            int py = row + ky;
-
-            if (px >= 0 && px < extended_width && py >= 0 && py < height) {
-              size_t idx =
-                  (static_cast<size_t>(py) * static_cast<size_t>(extended_width) * static_cast<size_t>(channels)) +
-                  (static_cast<size_t>(px) * static_cast<size_t>(channels)) + static_cast<size_t>(ch);
-              auto pixel_val = static_cast<double>(local_input[idx]);
-              const int kernel_y_idx = ky + 1;
-              const int kernel_x_idx = kx + 1;
-              const auto kernel_y = static_cast<size_t>(kernel_y_idx);
-              const auto kernel_x = static_cast<size_t>(kernel_x_idx);
-              sum += pixel_val * kKernel.at(kernel_y).at(kernel_x);
-            }
-          }
-        }
-
-        size_t out_idx = (static_cast<size_t>(row) * static_cast<size_t>(local_width) * static_cast<size_t>(channels)) +
-                         (static_cast<size_t>(local_col) * static_cast<size_t>(channels)) + static_cast<size_t>(ch);
-        local_output[out_idx] = static_cast<uint8_t>(std::clamp(sum, 0.0, 255.0));
-      }
+      ProcessPixelWithKernel(local_input, local_output, row, local_col, local_width, left_padding, extended_width,
+                             height, channels);
     }
   }
 }
 
-// NOLINTNEXTLINE(readability-function-cognitive-complexity)
+void ShilinNGaussFilterVerticalSplitMPI::ProcessPixelWithKernel(const std::vector<uint8_t> &local_input,
+                                                                std::vector<uint8_t> &local_output, int row,
+                                                                int local_col, int local_width, int left_padding,
+                                                                int extended_width, int height, int channels) {
+  // ядро гаусса 3x3
+  constexpr std::array<std::array<double, 3>, 3> kKernel = {{{{1.0 / 16.0, 2.0 / 16.0, 1.0 / 16.0}},
+                                                             {{2.0 / 16.0, 4.0 / 16.0, 2.0 / 16.0}},
+                                                             {{1.0 / 16.0, 2.0 / 16.0, 1.0 / 16.0}}}};
+
+  int col_in_extended = local_col + left_padding;
+
+  for (int ch = 0; ch < channels; ++ch) {
+    double sum = 0.0;
+
+    for (int ky = -1; ky <= 1; ++ky) {
+      for (int kx = -1; kx <= 1; ++kx) {
+        int px = col_in_extended + kx;
+        int py = row + ky;
+
+        if (px >= 0 && px < extended_width && py >= 0 && py < height) {
+          size_t idx = (static_cast<size_t>(py) * static_cast<size_t>(extended_width) * static_cast<size_t>(channels)) +
+                       (static_cast<size_t>(px) * static_cast<size_t>(channels)) + static_cast<size_t>(ch);
+          auto pixel_val = static_cast<double>(local_input[idx]);
+          const int kernel_y_idx = ky + 1;
+          const int kernel_x_idx = kx + 1;
+          const auto kernel_y = static_cast<size_t>(kernel_y_idx);
+          const auto kernel_x = static_cast<size_t>(kernel_x_idx);
+          sum += pixel_val * kKernel.at(kernel_y).at(kernel_x);
+        }
+      }
+    }
+
+    size_t out_idx = (static_cast<size_t>(row) * static_cast<size_t>(local_width) * static_cast<size_t>(channels)) +
+                     (static_cast<size_t>(local_col) * static_cast<size_t>(channels)) + static_cast<size_t>(ch);
+    local_output[out_idx] = static_cast<uint8_t>(std::clamp(sum, 0.0, 255.0));
+  }
+}
+
 void ShilinNGaussFilterVerticalSplitMPI::GatherVerticalStripes(const std::vector<uint8_t> &local_data,
                                                                std::vector<uint8_t> &output, int width, int height,
                                                                int channels, int rank, int size, int local_width,
@@ -261,72 +266,85 @@ void ShilinNGaussFilterVerticalSplitMPI::GatherVerticalStripes(const std::vector
   int remainder = width % size;
 
   if (rank == 0) {
-    // процесс 0 собирает данные от всех процессов
-    for (int src = 0; src < size; ++src) {
-      int src_start = (src * base_cols_per_proc) + std::min(src, remainder);
-      int src_width = base_cols_per_proc + (src < remainder ? 1 : 0);
+    int src_start = (0 * base_cols_per_proc) + std::min(0, remainder);
+    int src_width = base_cols_per_proc + (0 < remainder ? 1 : 0);
+    GatherFromRank0(local_data, output, width, height, channels, size, local_width, src_start, src_width);
+    GatherFromOtherRanks(output, width, height, channels, size, base_cols_per_proc, remainder);
+  } else {
+    SendUnpaddedData(local_data, local_width, local_start_col, width, height, channels);
+  }
+}
 
-      std::vector<uint8_t> recv_data(static_cast<size_t>(src_width) * static_cast<size_t>(height) *
-                                     static_cast<size_t>(channels));
-
-      if (src == 0) {
-        // данные процесса 0 уже на месте
-        for (int row = 0; row < height; ++row) {
-          for (int col = 0; col < src_width; ++col) {
-            for (int ch = 0; ch < channels; ++ch) {
-              size_t local_idx =
-                  (static_cast<size_t>(row) * static_cast<size_t>(local_width) * static_cast<size_t>(channels)) +
-                  (static_cast<size_t>(col) * static_cast<size_t>(channels)) + static_cast<size_t>(ch);
-              size_t global_idx =
-                  (static_cast<size_t>(row) * static_cast<size_t>(width) * static_cast<size_t>(channels)) +
-                  (static_cast<size_t>(src_start + col) * static_cast<size_t>(channels)) + static_cast<size_t>(ch);
-              output[global_idx] = local_data[local_idx];
-            }
-          }
-        }
-      } else {
-        MPI_Recv(recv_data.data(), static_cast<int>(recv_data.size()), MPI_UNSIGNED_CHAR, src, 0, MPI_COMM_WORLD,
-                 MPI_STATUS_IGNORE);
-
-        for (int row = 0; row < height; ++row) {
-          for (int col = 0; col < src_width; ++col) {
-            for (int ch = 0; ch < channels; ++ch) {
-              size_t recv_idx =
-                  (static_cast<size_t>(row) * static_cast<size_t>(src_width) * static_cast<size_t>(channels)) +
-                  (static_cast<size_t>(col) * static_cast<size_t>(channels)) + static_cast<size_t>(ch);
-              size_t global_idx =
-                  (static_cast<size_t>(row) * static_cast<size_t>(width) * static_cast<size_t>(channels)) +
-                  (static_cast<size_t>(src_start + col) * static_cast<size_t>(channels)) + static_cast<size_t>(ch);
-              output[global_idx] = recv_data[recv_idx];
-            }
-          }
-        }
+void ShilinNGaussFilterVerticalSplitMPI::GatherFromRank0(const std::vector<uint8_t> &local_data,
+                                                         std::vector<uint8_t> &output, int width, int height,
+                                                         int channels, int size, int local_width, int src_start,
+                                                         int src_width) {
+  for (int row = 0; row < height; ++row) {
+    for (int col = 0; col < src_width; ++col) {
+      for (int ch = 0; ch < channels; ++ch) {
+        size_t local_idx =
+            (static_cast<size_t>(row) * static_cast<size_t>(local_width) * static_cast<size_t>(channels)) +
+            (static_cast<size_t>(col) * static_cast<size_t>(channels)) + static_cast<size_t>(ch);
+        size_t global_idx = (static_cast<size_t>(row) * static_cast<size_t>(width) * static_cast<size_t>(channels)) +
+                            (static_cast<size_t>(src_start + col) * static_cast<size_t>(channels)) +
+                            static_cast<size_t>(ch);
+        output[global_idx] = local_data[local_idx];
       }
     }
-  } else {
-    // остальные процессы отправляют свои данные процессу 0
-    // отправляем только unpadded данные (без halo колонок)
-    std::vector<uint8_t> unpadded_data(static_cast<size_t>(local_width) * static_cast<size_t>(height) *
-                                       static_cast<size_t>(channels));
-    int left_padding = (local_start_col > 0) ? 1 : 0;
-    int extended_width = local_width + left_padding + ((local_start_col + local_width < width) ? 1 : 0);
+  }
+}
+
+void ShilinNGaussFilterVerticalSplitMPI::GatherFromOtherRanks(std::vector<uint8_t> &output, int width, int height,
+                                                              int channels, int size, int base_cols_per_proc,
+                                                              int remainder) {
+  for (int src = 1; src < size; ++src) {
+    int src_start = (src * base_cols_per_proc) + std::min(src, remainder);
+    int src_width = base_cols_per_proc + (src < remainder ? 1 : 0);
+
+    std::vector<uint8_t> recv_data(static_cast<size_t>(src_width) * static_cast<size_t>(height) *
+                                   static_cast<size_t>(channels));
+
+    MPI_Recv(recv_data.data(), static_cast<int>(recv_data.size()), MPI_UNSIGNED_CHAR, src, 0, MPI_COMM_WORLD,
+             MPI_STATUS_IGNORE);
 
     for (int row = 0; row < height; ++row) {
-      for (int col = 0; col < local_width; ++col) {
+      for (int col = 0; col < src_width; ++col) {
         for (int ch = 0; ch < channels; ++ch) {
-          size_t src_idx =
-              (static_cast<size_t>(row) * static_cast<size_t>(extended_width) * static_cast<size_t>(channels)) +
-              (static_cast<size_t>(col + left_padding) * static_cast<size_t>(channels)) + static_cast<size_t>(ch);
-          size_t dst_idx =
-              (static_cast<size_t>(row) * static_cast<size_t>(local_width) * static_cast<size_t>(channels)) +
+          size_t recv_idx =
+              (static_cast<size_t>(row) * static_cast<size_t>(src_width) * static_cast<size_t>(channels)) +
               (static_cast<size_t>(col) * static_cast<size_t>(channels)) + static_cast<size_t>(ch);
-          unpadded_data[dst_idx] = local_data[src_idx];
+          size_t global_idx = (static_cast<size_t>(row) * static_cast<size_t>(width) * static_cast<size_t>(channels)) +
+                              (static_cast<size_t>(src_start + col) * static_cast<size_t>(channels)) +
+                              static_cast<size_t>(ch);
+          output[global_idx] = recv_data[recv_idx];
         }
       }
     }
-
-    MPI_Send(unpadded_data.data(), static_cast<int>(unpadded_data.size()), MPI_UNSIGNED_CHAR, 0, 0, MPI_COMM_WORLD);
   }
+}
+
+void ShilinNGaussFilterVerticalSplitMPI::SendUnpaddedData(const std::vector<uint8_t> &local_data, int local_width,
+                                                          int local_start_col, int width, int height, int channels) {
+  // отправляем только unpadded данные (без halo колонок)
+  std::vector<uint8_t> unpadded_data(static_cast<size_t>(local_width) * static_cast<size_t>(height) *
+                                     static_cast<size_t>(channels));
+  int left_padding = (local_start_col > 0) ? 1 : 0;
+  int extended_width = local_width + left_padding + ((local_start_col + local_width < width) ? 1 : 0);
+
+  for (int row = 0; row < height; ++row) {
+    for (int col = 0; col < local_width; ++col) {
+      for (int ch = 0; ch < channels; ++ch) {
+        size_t src_idx =
+            (static_cast<size_t>(row) * static_cast<size_t>(extended_width) * static_cast<size_t>(channels)) +
+            (static_cast<size_t>(col + left_padding) * static_cast<size_t>(channels)) + static_cast<size_t>(ch);
+        size_t dst_idx = (static_cast<size_t>(row) * static_cast<size_t>(local_width) * static_cast<size_t>(channels)) +
+                         (static_cast<size_t>(col) * static_cast<size_t>(channels)) + static_cast<size_t>(ch);
+        unpadded_data[dst_idx] = local_data[src_idx];
+      }
+    }
+  }
+
+  MPI_Send(unpadded_data.data(), static_cast<int>(unpadded_data.size()), MPI_UNSIGNED_CHAR, 0, 0, MPI_COMM_WORLD);
 }
 
 }  // namespace shilin_n_gauss_filter_vertical_split

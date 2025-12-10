@@ -83,7 +83,6 @@ bool ShilinNGaussFilterVerticalSplitMPI::RunImpl() {
   int local_start_col = 0;
 
   std::vector<uint8_t> local_input;
-  // NOLINTNEXTLINE(readability-suspicious-call-argument)
   DistributeVerticalStripes(input_pixels, local_input, width, height, channels, rank, size, local_width,
                             local_start_col);
 
@@ -97,7 +96,6 @@ bool ShilinNGaussFilterVerticalSplitMPI::RunImpl() {
         std::vector<uint8_t>(static_cast<size_t>(width) * static_cast<size_t>(height) * static_cast<size_t>(channels));
   }
 
-  // NOLINTNEXTLINE(readability-suspicious-call-argument)
   GatherVerticalStripes(local_output, output_pixels, width, height, channels, rank, size, local_width, local_start_col);
 
   if (rank == 0) {
@@ -113,8 +111,8 @@ bool ShilinNGaussFilterVerticalSplitMPI::PostProcessingImpl() {
   return (rank == 0) ? !GetOutput().empty() : true;
 }
 
-void ShilinNGaussFilterVerticalSplitMPI::DistributeVerticalStripes(const std::vector<uint8_t> &input,
-                                                                   std::vector<uint8_t> &local_data, int width,
+void ShilinNGaussFilterVerticalSplitMPI::DistributeVerticalStripes(const std::vector<uint8_t> &source_image,
+                                                                   std::vector<uint8_t> &destination_stripe, int width,
                                                                    int height, int channels, int rank, int size,
                                                                    int &local_width, int &local_start_col) {
   // вертикальное разбиение: каждый процесс получает несколько столбцов
@@ -130,20 +128,20 @@ void ShilinNGaussFilterVerticalSplitMPI::DistributeVerticalStripes(const std::ve
   int extended_width = local_width + left_padding + right_padding;
 
   size_t local_size = static_cast<size_t>(extended_width) * static_cast<size_t>(height) * static_cast<size_t>(channels);
-  local_data = std::vector<uint8_t>(local_size);
+  destination_stripe = std::vector<uint8_t>(local_size);
 
   if (rank == 0) {
     // процесс 0 отправляет данные остальным процессам
     for (int dest = 1; dest < size; ++dest) {
-      SendDataToProcess(input, dest, width, height, channels, base_cols_per_proc, remainder);
+      SendDataToProcess(source_image, dest, width, height, channels, base_cols_per_proc, remainder);
     }
 
     // процесс 0 обрабатывает свои данные
-    CopyLocalData(input, local_data, local_start_col, local_width, width, height, channels);
+    CopyLocalData(source_image, destination_stripe, local_start_col, local_width, width, height, channels);
   } else {
     // остальные процессы получают данные
-    MPI_Recv(local_data.data(), static_cast<int>(local_data.size()), MPI_UNSIGNED_CHAR, 0, 0, MPI_COMM_WORLD,
-             MPI_STATUS_IGNORE);
+    MPI_Recv(destination_stripe.data(), static_cast<int>(destination_stripe.size()), MPI_UNSIGNED_CHAR, 0, 0,
+             MPI_COMM_WORLD, MPI_STATUS_IGNORE);
   }
 }
 
@@ -258,8 +256,8 @@ void ShilinNGaussFilterVerticalSplitMPI::ProcessPixelWithKernel(const std::vecto
   }
 }
 
-void ShilinNGaussFilterVerticalSplitMPI::GatherVerticalStripes(const std::vector<uint8_t> &local_data,
-                                                               std::vector<uint8_t> &output, int width, int height,
+void ShilinNGaussFilterVerticalSplitMPI::GatherVerticalStripes(const std::vector<uint8_t> &local_stripe,
+                                                               std::vector<uint8_t> &final_image, int width, int height,
                                                                int channels, int rank, int size, int local_width,
                                                                int local_start_col) {
   int base_cols_per_proc = width / size;
@@ -268,15 +266,15 @@ void ShilinNGaussFilterVerticalSplitMPI::GatherVerticalStripes(const std::vector
   if (rank == 0) {
     int src_start = (0 * base_cols_per_proc) + std::min(0, remainder);
     int src_width = base_cols_per_proc + (0 < remainder ? 1 : 0);
-    GatherFromRank0(local_data, output, width, height, channels, size, local_width, src_start, src_width);
-    GatherFromOtherRanks(output, width, height, channels, size, base_cols_per_proc, remainder);
+    GatherFromRank0(local_stripe, final_image, width, height, channels, size, local_width, src_start, src_width);
+    GatherFromOtherRanks(final_image, width, height, channels, size, base_cols_per_proc, remainder);
   } else {
-    SendUnpaddedData(local_data, local_width, local_start_col, width, height, channels);
+    SendUnpaddedData(local_stripe, local_width, local_start_col, width, height, channels);
   }
 }
 
-void ShilinNGaussFilterVerticalSplitMPI::GatherFromRank0(const std::vector<uint8_t> &local_data,
-                                                         std::vector<uint8_t> &output, int width, int height,
+void ShilinNGaussFilterVerticalSplitMPI::GatherFromRank0(const std::vector<uint8_t> &local_stripe,
+                                                         std::vector<uint8_t> &final_image, int width, int height,
                                                          int channels, int /* size */, int local_width, int src_start,
                                                          int src_width) {
   for (int row = 0; row < height; ++row) {
@@ -288,13 +286,13 @@ void ShilinNGaussFilterVerticalSplitMPI::GatherFromRank0(const std::vector<uint8
         size_t global_idx = (static_cast<size_t>(row) * static_cast<size_t>(width) * static_cast<size_t>(channels)) +
                             (static_cast<size_t>(src_start + col) * static_cast<size_t>(channels)) +
                             static_cast<size_t>(ch);
-        output[global_idx] = local_data[local_idx];
+        final_image[global_idx] = local_stripe[local_idx];
       }
     }
   }
 }
 
-void ShilinNGaussFilterVerticalSplitMPI::GatherFromOtherRanks(std::vector<uint8_t> &output, int width, int height,
+void ShilinNGaussFilterVerticalSplitMPI::GatherFromOtherRanks(std::vector<uint8_t> &final_image, int width, int height,
                                                               int channels, int size, int base_cols_per_proc,
                                                               int remainder) {
   for (int src = 1; src < size; ++src) {
@@ -316,14 +314,14 @@ void ShilinNGaussFilterVerticalSplitMPI::GatherFromOtherRanks(std::vector<uint8_
           size_t global_idx = (static_cast<size_t>(row) * static_cast<size_t>(width) * static_cast<size_t>(channels)) +
                               (static_cast<size_t>(src_start + col) * static_cast<size_t>(channels)) +
                               static_cast<size_t>(ch);
-          output[global_idx] = recv_data[recv_idx];
+          final_image[global_idx] = recv_data[recv_idx];
         }
       }
     }
   }
 }
 
-void ShilinNGaussFilterVerticalSplitMPI::SendUnpaddedData(const std::vector<uint8_t> &local_data, int local_width,
+void ShilinNGaussFilterVerticalSplitMPI::SendUnpaddedData(const std::vector<uint8_t> &local_stripe, int local_width,
                                                           int local_start_col, int width, int height, int channels) {
   // отправляем только unpadded данные (без halo колонок)
   std::vector<uint8_t> unpadded_data(static_cast<size_t>(local_width) * static_cast<size_t>(height) *
@@ -339,7 +337,7 @@ void ShilinNGaussFilterVerticalSplitMPI::SendUnpaddedData(const std::vector<uint
             (static_cast<size_t>(col + left_padding) * static_cast<size_t>(channels)) + static_cast<size_t>(ch);
         size_t dst_idx = (static_cast<size_t>(row) * static_cast<size_t>(local_width) * static_cast<size_t>(channels)) +
                          (static_cast<size_t>(col) * static_cast<size_t>(channels)) + static_cast<size_t>(ch);
-        unpadded_data[dst_idx] = local_data[src_idx];
+        unpadded_data[dst_idx] = local_stripe[src_idx];
       }
     }
   }

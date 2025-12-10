@@ -83,8 +83,9 @@ bool ShilinNGaussFilterVerticalSplitMPI::RunImpl() {
   int local_start_col = 0;
 
   std::vector<uint8_t> local_input;
+  // NOLINTNEXTLINE(readability-suspicious-call-argument)
   DistributeVerticalStripes(input_pixels, local_input, width, height, channels, rank, size, local_width,
-                            local_start_col);  // NOLINT(readability-suspicious-call-argument)
+                            local_start_col);
 
   std::vector<uint8_t> local_output(static_cast<size_t>(local_width) * static_cast<size_t>(height) *
                                     static_cast<size_t>(channels));
@@ -96,8 +97,9 @@ bool ShilinNGaussFilterVerticalSplitMPI::RunImpl() {
         std::vector<uint8_t>(static_cast<size_t>(width) * static_cast<size_t>(height) * static_cast<size_t>(channels));
   }
 
+  // NOLINTNEXTLINE(readability-suspicious-call-argument)
   GatherVerticalStripes(local_output, output_pixels, width, height, channels, rank, size, local_width,
-                        local_start_col);  // NOLINT(readability-suspicious-call-argument)
+                        local_start_col);
 
   if (rank == 0) {
     GetOutput() = output_pixels;
@@ -234,8 +236,10 @@ void ShilinNGaussFilterVerticalSplitMPI::ApplyGaussianKernelMPI(const std::vecto
                   (static_cast<size_t>(py) * static_cast<size_t>(extended_width) * static_cast<size_t>(channels)) +
                   (static_cast<size_t>(px) * static_cast<size_t>(channels)) + static_cast<size_t>(ch);
               auto pixel_val = static_cast<double>(local_input[idx]);
-              const auto kernel_y = static_cast<size_t>(ky + 1);
-              const auto kernel_x = static_cast<size_t>(kx + 1);
+              const int kernel_y_idx = ky + 1;
+              const int kernel_x_idx = kx + 1;
+              const auto kernel_y = static_cast<size_t>(kernel_y_idx);
+              const auto kernel_x = static_cast<size_t>(kernel_x_idx);
               sum += pixel_val * kKernel.at(kernel_y).at(kernel_x);
             }
           }

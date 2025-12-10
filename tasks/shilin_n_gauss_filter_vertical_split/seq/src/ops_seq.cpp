@@ -75,8 +75,8 @@ void ShilinNGaussFilterVerticalSplitSEQ::ApplyGaussianKernel(const std::vector<u
         for (int ky = -1; ky <= 1; ++ky) {
           for (int kx = -1; kx <= 1; ++kx) {
             double pixel_val = GetPixelValue(input, col + kx, row + ky, width, height, channels, ch);
-            const size_t kernel_y = static_cast<size_t>(ky + 1);
-            const size_t kernel_x = static_cast<size_t>(kx + 1);
+            const auto kernel_y = static_cast<size_t>(ky + 1);
+            const auto kernel_x = static_cast<size_t>(kx + 1);
             sum += pixel_val * kKernel.at(kernel_y).at(kernel_x);
           }
         }

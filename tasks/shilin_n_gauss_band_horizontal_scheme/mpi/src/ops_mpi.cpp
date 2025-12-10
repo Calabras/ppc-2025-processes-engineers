@@ -20,6 +20,7 @@ ShilinNGaussBandHorizontalSchemeMPI::ShilinNGaussBandHorizontalSchemeMPI(const I
   GetOutput() = std::vector<double>();
 }
 
+// NOLINTNEXTLINE(readability-function-cognitive-complexity)
 bool ShilinNGaussBandHorizontalSchemeMPI::ValidationImpl() {
   int rank = 0;
   MPI_Comm_rank(MPI_COMM_WORLD, &rank);

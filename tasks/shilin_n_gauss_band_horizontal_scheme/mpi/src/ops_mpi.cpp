@@ -20,7 +20,6 @@ ShilinNGaussBandHorizontalSchemeMPI::ShilinNGaussBandHorizontalSchemeMPI(const I
   GetOutput() = std::vector<double>();
 }
 
-// NOLINTNEXTLINE(readability-function-cognitive-complexity)
 bool ShilinNGaussBandHorizontalSchemeMPI::ValidationImpl() {
   int rank = 0;
   MPI_Comm_rank(MPI_COMM_WORLD, &rank);
@@ -29,26 +28,7 @@ bool ShilinNGaussBandHorizontalSchemeMPI::ValidationImpl() {
 
   if (rank == 0) {
     const InType &input = GetInput();
-    if (input.empty()) {
-      validation_result = 0;
-    } else {
-      size_t n = input.size();
-      if (n == 0) {
-        validation_result = 0;
-      } else {
-        size_t cols = input[0].size();
-        if (cols < n + 1) {
-          validation_result = 0;
-        } else {
-          for (size_t i = 1; i < n; ++i) {
-            if (input[i].size() != cols) {
-              validation_result = 0;
-              break;
-            }
-          }
-        }
-      }
-    }
+    validation_result = ValidateInput(input);
   }
 
   MPI_Bcast(&validation_result, 1, MPI_INT, 0, MPI_COMM_WORLD);
@@ -56,12 +36,35 @@ bool ShilinNGaussBandHorizontalSchemeMPI::ValidationImpl() {
   return validation_result != 0;
 }
 
+int ShilinNGaussBandHorizontalSchemeMPI::ValidateInput(const InType &input) {
+  if (input.empty()) {
+    return 0;
+  }
+
+  size_t n = input.size();
+  if (n == 0) {
+    return 0;
+  }
+
+  size_t cols = input[0].size();
+  if (cols < n + 1) {
+    return 0;
+  }
+
+  for (size_t i = 1; i < n; ++i) {
+    if (input[i].size() != cols) {
+      return 0;
+    }
+  }
+
+  return 1;
+}
+
 bool ShilinNGaussBandHorizontalSchemeMPI::PreProcessingImpl() {
   GetOutput() = std::vector<double>();
   return true;
 }
 
-// NOLINTNEXTLINE(readability-function-cognitive-complexity)
 bool ShilinNGaussBandHorizontalSchemeMPI::RunImpl() {
   int rank = 0;
   int size = 0;
@@ -89,6 +92,28 @@ bool ShilinNGaussBandHorizontalSchemeMPI::RunImpl() {
     return false;
   }
 
+  InType local_matrix;
+  std::vector<int> global_to_local(n, -1);
+  DistributeRows(augmented_matrix, n, cols, rank, size, local_matrix, global_to_local);
+
+  if (!ForwardEliminationMPI(local_matrix, global_to_local, n, cols, rank, size)) {
+    return false;
+  }
+
+  std::vector<double> x = BackSubstitutionMPI(local_matrix, global_to_local, n, cols, rank, size);
+
+  if (rank == 0) {
+    GetOutput() = x;
+  } else {
+    GetOutput() = std::vector<double>();
+  }
+
+  return true;
+}
+
+void ShilinNGaussBandHorizontalSchemeMPI::DistributeRows(const InType &augmented_matrix, size_t n, size_t cols,
+                                                          int rank, int size, InType &local_matrix,
+                                                          std::vector<int> &global_to_local) {
   //распределение строк по round-robin: строка i -> процесс i % size
   int local_rows = 0;
   for (size_t i = 0; i < n; ++i) {
@@ -97,9 +122,8 @@ bool ShilinNGaussBandHorizontalSchemeMPI::RunImpl() {
     }
   }
 
-  InType local_matrix(local_rows, std::vector<double>(cols));
+  local_matrix = InType(local_rows, std::vector<double>(cols));
   //маппинг глобальных индексов строк на локальные индексы
-  std::vector<int> global_to_local(n, -1);
   int local_idx = 0;
   for (size_t i = 0; i < n; ++i) {
     if (static_cast<int>(i) % size == rank) {
@@ -116,7 +140,11 @@ bool ShilinNGaussBandHorizontalSchemeMPI::RunImpl() {
                static_cast<int>(i), MPI_COMM_WORLD);
     }
   }
+}
 
+bool ShilinNGaussBandHorizontalSchemeMPI::ForwardEliminationMPI(InType &local_matrix,
+                                                                  const std::vector<int> &global_to_local, size_t n,
+                                                                  size_t cols, int rank, int size) {
   for (size_t k = 0; k < n; ++k) {
     //определение процесса-владельца ведущей строки
     int owner_process = static_cast<int>(k) % size;
@@ -136,28 +164,42 @@ bool ShilinNGaussBandHorizontalSchemeMPI::RunImpl() {
       return false;
     }
 
-    //исключение элементов в локальных строках
-    for (size_t i = 0; i < local_matrix.size(); ++i) {
-      //восстановление глобального индекса из локального
-      size_t global_i = 0;
-      const int local_idx_int = static_cast<int>(i);
-      for (size_t gi = 0; gi < n; ++gi) {
-        if (global_to_local[gi] >= 0 && global_to_local[gi] == local_idx_int) {
-          global_i = gi;
-          break;
-        }
-      }
+    EliminateColumnMPI(local_matrix, global_to_local, k, n, cols, pivot_row);
+  }
+  return true;
+}
 
-      if (global_i > k && std::abs(local_matrix[i][k]) > 1e-10) {
-        double factor = local_matrix[i][k] / pivot_row[k];
+void ShilinNGaussBandHorizontalSchemeMPI::EliminateColumnMPI(InType &local_matrix,
+                                                              const std::vector<int> &global_to_local, size_t k,
+                                                              size_t n, size_t cols,
+                                                              const std::vector<double> &pivot_row) {
+  //исключение элементов в локальных строках
+  for (size_t i = 0; i < local_matrix.size(); ++i) {
+    size_t global_i = GetGlobalIndex(global_to_local, i, n);
 
-        for (size_t j = k; j < cols; ++j) {
-          local_matrix[i][j] -= factor * pivot_row[j];
-        }
+    if (global_i > k && std::abs(local_matrix[i][k]) > 1e-10) {
+      double factor = local_matrix[i][k] / pivot_row[k];
+      for (size_t j = k; j < cols; ++j) {
+        local_matrix[i][j] -= factor * pivot_row[j];
       }
     }
   }
+}
 
+size_t ShilinNGaussBandHorizontalSchemeMPI::GetGlobalIndex(const std::vector<int> &global_to_local,
+                                                             size_t local_idx, size_t n) {
+  //восстановление глобального индекса из локального
+  const int local_idx_int = static_cast<int>(local_idx);
+  for (size_t gi = 0; gi < n; ++gi) {
+    if (global_to_local[gi] >= 0 && global_to_local[gi] == local_idx_int) {
+      return gi;
+    }
+  }
+  return 0;
+}
+
+std::vector<double> ShilinNGaussBandHorizontalSchemeMPI::BackSubstitutionMPI(
+    const InType &local_matrix, const std::vector<int> &global_to_local, size_t n, size_t cols, int rank, int size) {
   //обратный ход с синхронизацией между процессами
   std::vector<double> x(n, 0.0);
 
@@ -181,13 +223,7 @@ bool ShilinNGaussBandHorizontalSchemeMPI::RunImpl() {
     MPI_Bcast(&x[static_cast<size_t>(i)], 1, MPI_DOUBLE, owner_process, MPI_COMM_WORLD);
   }
 
-  if (rank == 0) {
-    GetOutput() = x;
-  } else {
-    GetOutput() = std::vector<double>();
-  }
-
-  return true;
+  return x;
 }
 
 bool ShilinNGaussBandHorizontalSchemeMPI::PostProcessingImpl() {

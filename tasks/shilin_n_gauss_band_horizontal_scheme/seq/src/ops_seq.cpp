@@ -44,7 +44,6 @@ bool ShilinNGaussBandHorizontalSchemeSEQ::PreProcessingImpl() {
   return true;
 }
 
-// NOLINTNEXTLINE(readability-function-cognitive-complexity)
 bool ShilinNGaussBandHorizontalSchemeSEQ::RunImpl() {
   InType augmented_matrix = GetInput();
   size_t n = augmented_matrix.size();
@@ -57,17 +56,18 @@ bool ShilinNGaussBandHorizontalSchemeSEQ::RunImpl() {
     return false;
   }
 
-  for (size_t k = 0; k < n; ++k) {
-    //поиск ведущего элемента для уменьшения ошибок округления
-    size_t max_row = k;
-    double max_val = std::abs(augmented_matrix[k][k]);
+  if (!ForwardElimination(augmented_matrix, n, cols)) {
+    return false;
+  }
 
-    for (size_t i = k + 1; i < n; ++i) {
-      if (std::abs(augmented_matrix[i][k]) > max_val) {
-        max_val = std::abs(augmented_matrix[i][k]);
-        max_row = i;
-      }
-    }
+  std::vector<double> x = BackSubstitution(augmented_matrix, n, cols);
+  GetOutput() = x;
+  return true;
+}
+
+bool ShilinNGaussBandHorizontalSchemeSEQ::ForwardElimination(InType &augmented_matrix, size_t n, size_t cols) {
+  for (size_t k = 0; k < n; ++k) {
+    size_t max_row = FindPivotRow(augmented_matrix, k, n);
 
     if (max_row != k) {
       std::swap(augmented_matrix[k], augmented_matrix[max_row]);
@@ -77,17 +77,40 @@ bool ShilinNGaussBandHorizontalSchemeSEQ::RunImpl() {
     if (std::abs(augmented_matrix[k][k]) < 1e-10) {
       return false;
     }
-    for (size_t i = k + 1; i < n; ++i) {
-      if (std::abs(augmented_matrix[i][k]) > 1e-10) {
-        double factor = augmented_matrix[i][k] / augmented_matrix[k][k];
 
-        for (size_t j = k; j < cols; ++j) {
-          augmented_matrix[i][j] -= factor * augmented_matrix[k][j];
-        }
-      }
+    EliminateColumn(augmented_matrix, k, n, cols);
+  }
+  return true;
+}
+
+size_t ShilinNGaussBandHorizontalSchemeSEQ::FindPivotRow(const InType &augmented_matrix, size_t k, size_t n) {
+  //поиск ведущего элемента для уменьшения ошибок округления
+  size_t max_row = k;
+  double max_val = std::abs(augmented_matrix[k][k]);
+
+  for (size_t i = k + 1; i < n; ++i) {
+    if (std::abs(augmented_matrix[i][k]) > max_val) {
+      max_val = std::abs(augmented_matrix[i][k]);
+      max_row = i;
     }
   }
 
+  return max_row;
+}
+
+void ShilinNGaussBandHorizontalSchemeSEQ::EliminateColumn(InType &augmented_matrix, size_t k, size_t n, size_t cols) {
+  for (size_t i = k + 1; i < n; ++i) {
+    if (std::abs(augmented_matrix[i][k]) > 1e-10) {
+      double factor = augmented_matrix[i][k] / augmented_matrix[k][k];
+      for (size_t j = k; j < cols; ++j) {
+        augmented_matrix[i][j] -= factor * augmented_matrix[k][j];
+      }
+    }
+  }
+}
+
+std::vector<double> ShilinNGaussBandHorizontalSchemeSEQ::BackSubstitution(const InType &augmented_matrix, size_t n,
+                                                                          size_t cols) {
   //обратный ход метода гаусса
   std::vector<double> x(n, 0.0);
   for (int i = static_cast<int>(n) - 1; i >= 0; --i) {
@@ -99,9 +122,7 @@ bool ShilinNGaussBandHorizontalSchemeSEQ::RunImpl() {
     x[static_cast<size_t>(i)] =
         (augmented_matrix[static_cast<size_t>(i)][cols - 1] - sum) / augmented_matrix[static_cast<size_t>(i)][static_cast<size_t>(i)];
   }
-
-  GetOutput() = x;
-  return true;
+  return x;
 }
 
 bool ShilinNGaussBandHorizontalSchemeSEQ::PostProcessingImpl() {

@@ -19,4 +19,3 @@ using TestType = std::tuple<int, int>;
 using BaseTask = ppc::task::Task<InType, OutType>;
 
 }  // namespace shilin_n_gauss_filter_vertical_split
-

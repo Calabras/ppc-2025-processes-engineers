@@ -73,7 +73,7 @@ bool ShilinNGaussBandHorizontalSchemeSEQ::ForwardElimination(InType &augmented_m
       std::swap(augmented_matrix[k], augmented_matrix[max_row]);
     }
 
-    //проверка на вырожденность матрицы
+    // проверка на вырожденность матрицы
     if (std::abs(augmented_matrix[k][k]) < 1e-10) {
       return false;
     }
@@ -84,7 +84,7 @@ bool ShilinNGaussBandHorizontalSchemeSEQ::ForwardElimination(InType &augmented_m
 }
 
 size_t ShilinNGaussBandHorizontalSchemeSEQ::FindPivotRow(const InType &augmented_matrix, size_t k, size_t n) {
-  //поиск ведущего элемента для уменьшения ошибок округления
+  // поиск ведущего элемента для уменьшения ошибок округления
   size_t max_row = k;
   double max_val = std::abs(augmented_matrix[k][k]);
 
@@ -111,7 +111,7 @@ void ShilinNGaussBandHorizontalSchemeSEQ::EliminateColumn(InType &augmented_matr
 
 std::vector<double> ShilinNGaussBandHorizontalSchemeSEQ::BackSubstitution(const InType &augmented_matrix, size_t n,
                                                                           size_t cols) {
-  //обратный ход метода гаусса
+  // обратный ход метода гаусса
   std::vector<double> x(n, 0.0);
   for (int i = static_cast<int>(n) - 1; i >= 0; --i) {
     double sum = 0.0;
@@ -119,8 +119,8 @@ std::vector<double> ShilinNGaussBandHorizontalSchemeSEQ::BackSubstitution(const 
       sum += augmented_matrix[static_cast<size_t>(i)][j] * x[j];
     }
 
-    x[static_cast<size_t>(i)] =
-        (augmented_matrix[static_cast<size_t>(i)][cols - 1] - sum) / augmented_matrix[static_cast<size_t>(i)][static_cast<size_t>(i)];
+    x[static_cast<size_t>(i)] = (augmented_matrix[static_cast<size_t>(i)][cols - 1] - sum) /
+                                augmented_matrix[static_cast<size_t>(i)][static_cast<size_t>(i)];
   }
   return x;
 }
@@ -130,4 +130,3 @@ bool ShilinNGaussBandHorizontalSchemeSEQ::PostProcessingImpl() {
 }
 
 }  // namespace shilin_n_gauss_band_horizontal_scheme
-

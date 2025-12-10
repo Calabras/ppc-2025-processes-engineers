@@ -56,9 +56,9 @@ TEST_P(ShilinNGaussBandHorizontalSchemePerfTests, RunPerfModes) {
   ExecuteTest(GetParam());
 }
 
-const auto kAllPerfTasks = ppc::util::MakeAllPerfTasks<InType, ShilinNGaussBandHorizontalSchemeMPI,
-                                                       ShilinNGaussBandHorizontalSchemeSEQ>(
-    PPC_SETTINGS_shilin_n_gauss_band_horizontal_scheme);
+const auto kAllPerfTasks =
+    ppc::util::MakeAllPerfTasks<InType, ShilinNGaussBandHorizontalSchemeMPI, ShilinNGaussBandHorizontalSchemeSEQ>(
+        PPC_SETTINGS_shilin_n_gauss_band_horizontal_scheme);
 
 const auto kGtestValues = ppc::util::TupleToGTestValues(kAllPerfTasks);
 
@@ -67,4 +67,3 @@ const auto kPerfTestName = ShilinNGaussBandHorizontalSchemePerfTests::CustomPerf
 INSTANTIATE_TEST_SUITE_P(RunModeTests, ShilinNGaussBandHorizontalSchemePerfTests, kGtestValues, kPerfTestName);
 
 }  // namespace shilin_n_gauss_band_horizontal_scheme
-

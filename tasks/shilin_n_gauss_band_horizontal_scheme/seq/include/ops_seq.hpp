@@ -25,4 +25,3 @@ class ShilinNGaussBandHorizontalSchemeSEQ : public BaseTask {
 };
 
 }  // namespace shilin_n_gauss_band_horizontal_scheme
-

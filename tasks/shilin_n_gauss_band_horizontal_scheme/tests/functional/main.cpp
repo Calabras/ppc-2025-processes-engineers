@@ -50,7 +50,8 @@ class ShilinNGaussBandHorizontalSchemeRunFuncTestsProcesses
 
       double b = 0.0;
       for (int j = 0; j < matrix_size; ++j) {
-        b += augmented_matrix[static_cast<size_t>(i)][static_cast<size_t>(j)] * expected_output_[static_cast<size_t>(j)];
+        b +=
+            augmented_matrix[static_cast<size_t>(i)][static_cast<size_t>(j)] * expected_output_[static_cast<size_t>(j)];
       }
       augmented_matrix[static_cast<size_t>(i)][static_cast<size_t>(matrix_size)] = b;
     }
@@ -87,15 +88,13 @@ TEST_P(ShilinNGaussBandHorizontalSchemeRunFuncTestsProcesses, SolveLinearSystem)
   ExecuteTest(GetParam());
 }
 
-const std::array<TestType, 6> kTestParam = {
-    std::make_tuple(3, 1), std::make_tuple(4, 1), std::make_tuple(5, 2),
-    std::make_tuple(6, 2), std::make_tuple(8, 3), std::make_tuple(10, 3)};
+const std::array<TestType, 6> kTestParam = {std::make_tuple(3, 1), std::make_tuple(4, 1), std::make_tuple(5, 2),
+                                            std::make_tuple(6, 2), std::make_tuple(8, 3), std::make_tuple(10, 3)};
 
-const auto kTestTasksList =
-    std::tuple_cat(ppc::util::AddFuncTask<ShilinNGaussBandHorizontalSchemeMPI, InType>(
-                       kTestParam, PPC_SETTINGS_shilin_n_gauss_band_horizontal_scheme),
-                   ppc::util::AddFuncTask<ShilinNGaussBandHorizontalSchemeSEQ, InType>(
-                       kTestParam, PPC_SETTINGS_shilin_n_gauss_band_horizontal_scheme));
+const auto kTestTasksList = std::tuple_cat(ppc::util::AddFuncTask<ShilinNGaussBandHorizontalSchemeMPI, InType>(
+                                               kTestParam, PPC_SETTINGS_shilin_n_gauss_band_horizontal_scheme),
+                                           ppc::util::AddFuncTask<ShilinNGaussBandHorizontalSchemeSEQ, InType>(
+                                               kTestParam, PPC_SETTINGS_shilin_n_gauss_band_horizontal_scheme));
 
 const auto kGtestValues = ppc::util::ExpandToValues(kTestTasksList);
 
@@ -108,4 +107,3 @@ INSTANTIATE_TEST_SUITE_P(GaussEliminationTests, ShilinNGaussBandHorizontalScheme
 }  // namespace
 
 }  // namespace shilin_n_gauss_band_horizontal_scheme
-

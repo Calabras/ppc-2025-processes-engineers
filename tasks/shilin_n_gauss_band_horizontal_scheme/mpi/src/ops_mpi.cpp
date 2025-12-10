@@ -24,30 +24,32 @@ bool ShilinNGaussBandHorizontalSchemeMPI::ValidationImpl() {
   int rank = 0;
   MPI_Comm_rank(MPI_COMM_WORLD, &rank);
 
+  int validation_result = 1;
+
   if (rank == 0) {
     const InType &input = GetInput();
     if (input.empty()) {
-      return false;
-    }
-
-    size_t n = input.size();
-    if (n == 0) {
-      return false;
-    }
-
-    size_t cols = input[0].size();
-    if (cols < n + 1) {
-      return false;
-    }
-
-    for (size_t i = 1; i < n; ++i) {
-      if (input[i].size() != cols) {
-        return false;
+      validation_result = 0;
+    } else {
+      size_t n = input.size();
+      if (n == 0) {
+        validation_result = 0;
+      } else {
+        size_t cols = input[0].size();
+        if (cols < n + 1) {
+          validation_result = 0;
+        } else {
+          for (size_t i = 1; i < n; ++i) {
+            if (input[i].size() != cols) {
+              validation_result = 0;
+              break;
+            }
+          }
+        }
       }
     }
   }
 
-  int validation_result = (rank == 0) ? 1 : 0;
   MPI_Bcast(&validation_result, 1, MPI_INT, 0, MPI_COMM_WORLD);
 
   return validation_result != 0;

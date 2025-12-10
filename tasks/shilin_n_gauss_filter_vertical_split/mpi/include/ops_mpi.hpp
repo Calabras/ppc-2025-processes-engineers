@@ -33,7 +33,7 @@ class ShilinNGaussFilterVerticalSplitMPI : public BaseTask {
   static void GatherVerticalStripes(const std::vector<uint8_t> &local_data, std::vector<uint8_t> &output, int width,
                                     int height, int channels, int rank, int size, int local_width, int local_start_col);
   static void GatherFromRank0(const std::vector<uint8_t> &local_data, std::vector<uint8_t> &output, int width,
-                                int height, int channels, int size, int local_width, int src_start, int src_width);
+                                int height, int channels, int /* size */, int local_width, int src_start, int src_width);
   static void GatherFromOtherRanks(std::vector<uint8_t> &output, int width, int height, int channels, int size,
                                     int base_cols_per_proc, int remainder);
   static void SendUnpaddedData(const std::vector<uint8_t> &local_data, int local_width, int local_start_col, int width,

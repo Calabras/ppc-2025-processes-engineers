@@ -213,7 +213,7 @@ std::vector<double> ShilinNGaussBandHorizontalSchemeMPI::BackSubstitutionMPI(con
     if (rank == owner_process) {
       int local_i = global_to_local[static_cast<size_t>(i)];
       if (local_i >= 0 && static_cast<size_t>(local_i) < local_matrix.size()) {
-        for (size_t j = static_cast<size_t>(i) + 1; j < cols - 1; ++j) {
+        for (size_t j = static_cast<size_t>(i) + 1; j < n; ++j) {
           sum += local_matrix[static_cast<size_t>(local_i)][j] * x[j];
         }
         x[static_cast<size_t>(i)] = (local_matrix[static_cast<size_t>(local_i)][cols - 1] - sum) /

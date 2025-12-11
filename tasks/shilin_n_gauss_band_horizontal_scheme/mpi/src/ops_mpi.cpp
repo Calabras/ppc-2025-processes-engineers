@@ -15,8 +15,8 @@ ShilinNGaussBandHorizontalSchemeMPI::ShilinNGaussBandHorizontalSchemeMPI(const I
   int rank = 0;
   MPI_Comm_rank(MPI_COMM_WORLD, &rank);
   if (rank == 0) {
-    GetInput().clear();
-    GetInput() = in;
+    InType &input_ref = GetInput();
+    input_ref = in;
   }
   GetOutput() = std::vector<double>();
 }

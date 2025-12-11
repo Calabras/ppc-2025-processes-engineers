@@ -323,27 +323,12 @@ void ShilinNGaussFilterVerticalSplitMPI::GatherFromOtherRanks(std::vector<uint8_
 }
 
 void ShilinNGaussFilterVerticalSplitMPI::SendUnpaddedData(const std::vector<uint8_t> &local_stripe, int local_width,
-                                                          int local_start_col, int width, int height, int channels) {
-  // отправляем только unpadded данные (без halo колонок)
-  std::vector<uint8_t> unpadded_data(static_cast<size_t>(local_width) * static_cast<size_t>(height) *
-                                     static_cast<size_t>(channels));
-  int left_padding = (local_start_col > 0) ? 1 : 0;
-  int extended_width = local_width + left_padding + ((local_start_col + local_width < width) ? 1 : 0);
-
-  for (int row = 0; row < height; ++row) {
-    for (int col = 0; col < local_width; ++col) {
-      for (int ch = 0; ch < channels; ++ch) {
-        size_t src_idx =
-            (static_cast<size_t>(row) * static_cast<size_t>(extended_width) * static_cast<size_t>(channels)) +
-            (static_cast<size_t>(col + left_padding) * static_cast<size_t>(channels)) + static_cast<size_t>(ch);
-        size_t dst_idx = (static_cast<size_t>(row) * static_cast<size_t>(local_width) * static_cast<size_t>(channels)) +
-                         (static_cast<size_t>(col) * static_cast<size_t>(channels)) + static_cast<size_t>(ch);
-        unpadded_data[dst_idx] = local_stripe[src_idx];
-      }
-    }
-  }
-
-  MPI_Send(unpadded_data.data(), static_cast<int>(unpadded_data.size()), MPI_UNSIGNED_CHAR, 0, 0, MPI_COMM_WORLD);
+                                                          int /*local_start_col*/, int /*width*/, int height,
+                                                          int channels) {
+  // local_stripe уже содержит unpadded данные (local_output после ApplyGaussianKernelMPI)
+  // размер: local_width * height * channels
+  size_t data_size = static_cast<size_t>(local_width) * static_cast<size_t>(height) * static_cast<size_t>(channels);
+  MPI_Send(local_stripe.data(), static_cast<int>(data_size), MPI_UNSIGNED_CHAR, 0, 0, MPI_COMM_WORLD);
 }
 
 }  // namespace shilin_n_gauss_filter_vertical_split

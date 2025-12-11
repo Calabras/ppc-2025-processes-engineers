@@ -12,7 +12,11 @@ namespace shilin_n_gauss_band_horizontal_scheme {
 ShilinNGaussBandHorizontalSchemeSEQ::ShilinNGaussBandHorizontalSchemeSEQ(const InType &in) {
   SetTypeOfTask(GetStaticTypeOfTask());
   InType &input_ref = GetInput();
-  input_ref = in;
+  input_ref.clear();
+  input_ref.reserve(in.size());
+  for (const auto &row : in) {
+    input_ref.push_back(row);
+  }
   GetOutput() = std::vector<double>();
 }
 

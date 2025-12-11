@@ -203,46 +203,6 @@ size_t ShilinNGaussBandHorizontalSchemeMPI::GetGlobalIndex(const std::vector<int
   return 0;
 }
 
-size_t ShilinNGaussBandHorizontalSchemeMPI::FindPivotRowMPI(const InType &local_matrix,
-                                                            const std::vector<int> &global_to_local, size_t k, size_t n,
-                                                            int rank, int size) {
-  // поиск ведущего элемента среди всех процессов
-  double local_max_val = 0.0;
-  size_t local_max_row = k;
-
-  // поиск локального максимума
-  for (size_t i = 0; i < local_matrix.size(); ++i) {
-    size_t global_i = GetGlobalIndex(global_to_local, i, n);
-    if (global_i >= k && global_i < n) {
-      double abs_val = std::abs(local_matrix[i][k]);
-      if (abs_val > local_max_val) {
-        local_max_val = abs_val;
-        local_max_row = global_i;
-      }
-    }
-  }
-
-  // поиск глобального максимума через MPI_Allreduce
-  struct {
-    double val;
-    int rank;
-  } local_data, global_data;
-
-  local_data.val = local_max_val;
-  local_data.rank = rank;
-
-  MPI_Allreduce(&local_data, &global_data, 1, MPI_DOUBLE_INT, MPI_MAXLOC, MPI_COMM_WORLD);
-
-  // процесс с максимальным значением отправляет индекс строки
-  size_t global_max_row = k;
-  if (rank == global_data.rank) {
-    global_max_row = local_max_row;
-  }
-  MPI_Bcast(&global_max_row, 1, MPI_UNSIGNED_LONG, global_data.rank, MPI_COMM_WORLD);
-
-  return global_max_row;
-}
-
 std::vector<double> ShilinNGaussBandHorizontalSchemeMPI::BackSubstitutionMPI(const InType &local_matrix,
                                                                              const std::vector<int> &global_to_local,
                                                                              size_t n, size_t cols, int rank,

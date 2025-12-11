@@ -1,5 +1,8 @@
 #pragma once
 
+#include <cstdint>
+#include <vector>
+
 #include "shilin_n_gauss_filter_vertical_split/common/include/common.hpp"
 #include "task/include/task.hpp"
 

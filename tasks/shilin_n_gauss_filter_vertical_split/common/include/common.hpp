@@ -1,5 +1,7 @@
 #pragma once
 
+#include <cstdint>
+#include <tuple>
 #include <vector>
 
 #include "task/include/task.hpp"
@@ -8,9 +10,9 @@ namespace shilin_n_gauss_filter_vertical_split {
 
 struct ImageData {
   std::vector<uint8_t> pixels;
-  int width;
-  int height;
-  int channels;
+  int width = 0;
+  int height = 0;
+  int channels = 0;
 };
 
 using InType = ImageData;

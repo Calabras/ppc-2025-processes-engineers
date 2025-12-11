@@ -1,11 +1,11 @@
 #include <gtest/gtest.h>
 #include <stb/stb_image.h>
 
+#include <algorithm>
 #include <array>
 #include <cmath>
 #include <cstddef>
 #include <cstdint>
-#include <stdexcept>
 #include <string>
 #include <tuple>
 #include <vector>
@@ -41,41 +41,44 @@ class ShilinNGaussFilterVerticalSplitRunFuncTestsProcesses
     input_data.pixels = std::vector<uint8_t>(pixel_count);
 
     // создаем тестовое изображение с градиентом
-    for (int y = 0; y < height; ++y) {
-      for (int x = 0; x < width; ++x) {
-        for (int c = 0; c < input_data.channels; ++c) {
-          size_t idx = static_cast<size_t>(y) * static_cast<size_t>(width) * static_cast<size_t>(input_data.channels) +
-                       static_cast<size_t>(x) * static_cast<size_t>(input_data.channels) + static_cast<size_t>(c);
-          input_data.pixels[idx] = static_cast<uint8_t>((x + y + c * 10) % 256);
+    for (int row = 0; row < height; ++row) {
+      for (int col = 0; col < width; ++col) {
+        for (int ch = 0; ch < input_data.channels; ++ch) {
+          size_t idx =
+              (static_cast<size_t>(row) * static_cast<size_t>(width) * static_cast<size_t>(input_data.channels)) +
+              (static_cast<size_t>(col) * static_cast<size_t>(input_data.channels)) + static_cast<size_t>(ch);
+          input_data.pixels[idx] = static_cast<uint8_t>((col + row + ch * 10) % 256);
         }
       }
     }
 
     // вычисляем ожидаемый результат применяя фильтр гаусса
     expected_output_ = std::vector<uint8_t>(pixel_count);
-    constexpr double kernel[3][3] = {{1.0 / 16.0, 2.0 / 16.0, 1.0 / 16.0},
-                                     {2.0 / 16.0, 4.0 / 16.0, 2.0 / 16.0},
-                                     {1.0 / 16.0, 2.0 / 16.0, 1.0 / 16.0}};
+    constexpr std::array<std::array<double, 3>, 3> kKernel = {{{{1.0 / 16.0, 2.0 / 16.0, 1.0 / 16.0}},
+                                                               {{2.0 / 16.0, 4.0 / 16.0, 2.0 / 16.0}},
+                                                               {{1.0 / 16.0, 2.0 / 16.0, 1.0 / 16.0}}}};
 
-    for (int y = 0; y < height; ++y) {
-      for (int x = 0; x < width; ++x) {
-        for (int c = 0; c < input_data.channels; ++c) {
+    for (int row = 0; row < height; ++row) {
+      for (int col = 0; col < width; ++col) {
+        for (int ch = 0; ch < input_data.channels; ++ch) {
           double sum = 0.0;
           for (int ky = -1; ky <= 1; ++ky) {
             for (int kx = -1; kx <= 1; ++kx) {
-              int px = x + kx;
-              int py = y + ky;
+              int px = col + kx;
+              int py = row + ky;
               if (px >= 0 && px < width && py >= 0 && py < height) {
                 size_t idx =
-                    static_cast<size_t>(py) * static_cast<size_t>(width) * static_cast<size_t>(input_data.channels) +
-                    static_cast<size_t>(px) * static_cast<size_t>(input_data.channels) + static_cast<size_t>(c);
-                sum += static_cast<double>(input_data.pixels[idx]) * kernel[ky + 1][kx + 1];
+                    (static_cast<size_t>(py) * static_cast<size_t>(width) * static_cast<size_t>(input_data.channels)) +
+                    (static_cast<size_t>(px) * static_cast<size_t>(input_data.channels)) + static_cast<size_t>(ch);
+                const auto kernel_row = static_cast<size_t>(ky + 1);
+                const auto kernel_col = static_cast<size_t>(kx + 1);
+                sum += static_cast<double>(input_data.pixels[idx]) * kKernel.at(kernel_row).at(kernel_col);
               }
             }
           }
           size_t out_idx =
-              static_cast<size_t>(y) * static_cast<size_t>(width) * static_cast<size_t>(input_data.channels) +
-              static_cast<size_t>(x) * static_cast<size_t>(input_data.channels) + static_cast<size_t>(c);
+              (static_cast<size_t>(row) * static_cast<size_t>(width) * static_cast<size_t>(input_data.channels)) +
+              (static_cast<size_t>(col) * static_cast<size_t>(input_data.channels)) + static_cast<size_t>(ch);
           expected_output_[out_idx] = static_cast<uint8_t>(std::clamp(sum, 0.0, 255.0));
         }
       }

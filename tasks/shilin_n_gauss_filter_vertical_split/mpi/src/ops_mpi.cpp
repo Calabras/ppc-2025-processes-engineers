@@ -237,16 +237,17 @@ void ShilinNGaussFilterVerticalSplitMPI::ProcessPixelWithKernel(const std::vecto
         int px = col_in_extended + kx;
         int py = row + ky;
 
+        double pixel_val = 0.0;
         if (px >= 0 && px < extended_width && py >= 0 && py < height) {
           size_t idx = (static_cast<size_t>(py) * static_cast<size_t>(extended_width) * static_cast<size_t>(channels)) +
                        (static_cast<size_t>(px) * static_cast<size_t>(channels)) + static_cast<size_t>(ch);
-          auto pixel_val = static_cast<double>(local_input[idx]);
-          const int kernel_y_idx = ky + 1;
-          const int kernel_x_idx = kx + 1;
-          const auto kernel_y = static_cast<size_t>(kernel_y_idx);
-          const auto kernel_x = static_cast<size_t>(kernel_x_idx);
-          sum += pixel_val * kKernel.at(kernel_y).at(kernel_x);
+          pixel_val = static_cast<double>(local_input[idx]);
         }
+        const int kernel_y_idx = ky + 1;
+        const int kernel_x_idx = kx + 1;
+        const auto kernel_y = static_cast<size_t>(kernel_y_idx);
+        const auto kernel_x = static_cast<size_t>(kernel_x_idx);
+        sum += pixel_val * kKernel.at(kernel_y).at(kernel_x);
       }
     }
 

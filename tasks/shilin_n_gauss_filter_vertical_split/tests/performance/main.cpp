@@ -30,10 +30,10 @@ class ShilinNGaussFilterVerticalSplitPerfTests : public ppc::util::BaseRunPerfTe
 
     std::random_device rd;
     std::mt19937 gen(rd());
-    std::uniform_int_distribution<uint8_t> dist(0, 255);
+    std::uniform_int_distribution<int> dist(0, 255);
 
     for (size_t i = 0; i < pixel_count; ++i) {
-      input_data_.pixels[i] = dist(gen);
+      input_data_.pixels[i] = static_cast<uint8_t>(dist(gen));
     }
   }
 

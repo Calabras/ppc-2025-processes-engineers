@@ -1,5 +1,8 @@
 #pragma once
 
+#include <cstddef>
+#include <vector>
+
 #include "shilin_n_gauss_band_horizontal_scheme/common/include/common.hpp"
 #include "task/include/task.hpp"
 

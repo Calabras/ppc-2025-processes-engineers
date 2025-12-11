@@ -2,6 +2,8 @@
 
 #include <array>
 #include <cmath>
+#include <cstddef>
+#include <string>
 #include <tuple>
 #include <vector>
 
@@ -9,6 +11,7 @@
 #include "shilin_n_gauss_band_horizontal_scheme/mpi/include/ops_mpi.hpp"
 #include "shilin_n_gauss_band_horizontal_scheme/seq/include/ops_seq.hpp"
 #include "util/include/func_test_util.hpp"
+#include "util/include/util.hpp"
 
 namespace shilin_n_gauss_band_horizontal_scheme {
 

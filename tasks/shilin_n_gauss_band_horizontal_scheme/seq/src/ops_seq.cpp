@@ -60,7 +60,6 @@ bool ShilinNGaussBandHorizontalSchemeSEQ::RunImpl() {
   if (cols < n + 1) {
     return false;
   }
-
   if (!ForwardElimination(augmented_matrix, n, cols)) {
     return false;
   }

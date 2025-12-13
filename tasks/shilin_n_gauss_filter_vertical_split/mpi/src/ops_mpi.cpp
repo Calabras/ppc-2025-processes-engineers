@@ -98,9 +98,14 @@ bool ShilinNGaussFilterVerticalSplitMPI::RunImpl() {
 
   GatherVerticalStripes(local_output, output_pixels, width, height, channels, rank, size, local_width, local_start_col);
 
-  if (rank == 0) {
-    GetOutput() = output_pixels;
+  const auto output_size = static_cast<size_t>(width) * static_cast<size_t>(height) * static_cast<size_t>(channels);
+  if (rank != 0) {
+    output_pixels.resize(output_size);
   }
+
+  // синхронизируем итоговое изображение между всеми процессами, чтобы тесты не падали на worker ranks
+  MPI_Bcast(output_pixels.data(), static_cast<int>(output_size), MPI_UNSIGNED_CHAR, 0, MPI_COMM_WORLD);
+  GetOutput() = output_pixels;
 
   return true;
 }

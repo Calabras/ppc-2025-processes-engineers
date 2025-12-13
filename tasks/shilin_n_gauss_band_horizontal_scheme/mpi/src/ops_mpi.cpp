@@ -107,11 +107,7 @@ bool ShilinNGaussBandHorizontalSchemeMPI::RunImpl() {
 
   std::vector<double> x = BackSubstitutionMPI(local_matrix, global_to_local, n, cols, rank, size);
 
-  if (rank == 0) {
-    GetOutput() = x;
-  } else {
-    GetOutput() = std::vector<double>();
-  }
+  GetOutput() = x;
 
   return true;
 }

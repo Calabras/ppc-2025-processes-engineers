@@ -30,6 +30,9 @@ class ShilinNGaussBandHorizontalSchemeRunFuncTestsProcesses
 
     InType augmented_matrix(static_cast<size_t>(matrix_size));
     expected_output_ = std::vector<double>(static_cast<size_t>(matrix_size));
+    for (int i = 0; i < matrix_size; ++i) {
+      expected_output_[static_cast<size_t>(i)] = static_cast<double>(i + 1);
+    }
 
     for (int i = 0; i < matrix_size; ++i) {
       augmented_matrix[static_cast<size_t>(i)] = std::vector<double>(static_cast<size_t>(matrix_size) + 1, 0.0);
@@ -48,9 +51,9 @@ class ShilinNGaussBandHorizontalSchemeRunFuncTestsProcesses
       if (augmented_matrix[static_cast<size_t>(i)][static_cast<size_t>(i)] < sum) {
         augmented_matrix[static_cast<size_t>(i)][static_cast<size_t>(i)] = sum + 1.0;
       }
+    }
 
-      expected_output_[static_cast<size_t>(i)] = static_cast<double>(i + 1);
-
+    for (int i = 0; i < matrix_size; ++i) {
       double b = 0.0;
       for (int j = 0; j < matrix_size; ++j) {
         b +=
@@ -67,11 +70,7 @@ class ShilinNGaussBandHorizontalSchemeRunFuncTestsProcesses
       return false;
     }
 
-    // для малых матриц и MPI версии увеличиваем tolerance из-за накопления ошибок округления
-    // MPI версия не использует pivot, что может привести к большим ошибкам
-    // для очень малых матриц (<= 10) используем еще больший tolerance
-    // особенно для матриц размером <= 6 используем очень большой tolerance
-    const double tolerance = (expected_output_.size() <= 6) ? 1e-1 : (expected_output_.size() <= 10) ? 1e-2 : 1e-5;
+    const double tolerance = 1e-5;
     for (size_t i = 0; i < expected_output_.size(); ++i) {
       if (std::abs(output_data[i] - expected_output_[i]) > tolerance) {
         return false;

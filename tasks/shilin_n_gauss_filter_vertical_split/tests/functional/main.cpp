@@ -70,9 +70,10 @@ class ShilinNGaussFilterVerticalSplitRunFuncTestsProcesses
                 size_t idx =
                     (static_cast<size_t>(py) * static_cast<size_t>(width) * static_cast<size_t>(input_data.channels)) +
                     (static_cast<size_t>(px) * static_cast<size_t>(input_data.channels)) + static_cast<size_t>(ch);
-                const auto kernel_row = static_cast<size_t>(ky + 1);
-                const auto kernel_col = static_cast<size_t>(kx + 1);
-                sum += static_cast<double>(input_data.pixels[idx]) * kKernel.at(kernel_row).at(kernel_col);
+                const int kernel_row = ky + 1;
+                const int kernel_col = kx + 1;
+                sum += static_cast<double>(input_data.pixels[idx]) *
+                       kKernel.at(static_cast<size_t>(kernel_row)).at(static_cast<size_t>(kernel_col));
               }
             }
           }

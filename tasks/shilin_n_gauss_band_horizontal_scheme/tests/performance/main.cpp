@@ -16,7 +16,7 @@ class ShilinNGaussBandHorizontalSchemePerfTests : public ppc::util::BaseRunPerfT
   InType input_data_;
 
   void SetUp() override {
-    const int matrix_size = 100;
+    const int matrix_size = 1000;
     const int band_width = 5;
 
     input_data_ = InType(static_cast<size_t>(matrix_size));
@@ -46,7 +46,7 @@ class ShilinNGaussBandHorizontalSchemePerfTests : public ppc::util::BaseRunPerfT
   }
 
   bool CheckTestOutputData(OutType &output_data) final {
-    return output_data.size() == 100;
+    return output_data.size() == 1000;
   }
 
   InType GetTestInputData() final {

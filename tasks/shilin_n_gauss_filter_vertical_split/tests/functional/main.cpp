@@ -22,14 +22,13 @@ namespace shilin_n_gauss_filter_vertical_split {
 
 namespace {
 
-[[nodiscard]] std::vector<uint8_t> ComputeGauss3x3Reference(const ImageData& input) {
+[[nodiscard]] std::vector<uint8_t> ComputeGauss3x3Reference(const ImageData &input) {
   const int width = input.width;
   const int height = input.height;
   const int channels = input.channels;
-  const auto& pixels = input.pixels;
+  const auto &pixels = input.pixels;
 
-  const size_t pixel_count =
-      static_cast<size_t>(width) * static_cast<size_t>(height) * static_cast<size_t>(channels);
+  const size_t pixel_count = static_cast<size_t>(width) * static_cast<size_t>(height) * static_cast<size_t>(channels);
   std::vector<uint8_t> out(pixel_count);
 
   constexpr std::array<std::array<double, 3>, 3> kKernel = {{{{1.0 / 16.0, 2.0 / 16.0, 1.0 / 16.0}},
@@ -48,14 +47,14 @@ namespace {
               const size_t idx =
                   (static_cast<size_t>(py) * static_cast<size_t>(width) * static_cast<size_t>(channels)) +
                   (static_cast<size_t>(px) * static_cast<size_t>(channels)) + static_cast<size_t>(ch);
-              sum += static_cast<double>(pixels[idx]) *
-                     kKernel.at(static_cast<size_t>(ky + 1)).at(static_cast<size_t>(kx + 1));
+              const size_t kernel_row = static_cast<size_t>(ky) + 1U;
+              const size_t kernel_col = static_cast<size_t>(kx) + 1U;
+              sum += static_cast<double>(pixels[idx]) * kKernel.at(kernel_row).at(kernel_col);
             }
           }
         }
-        const size_t out_idx =
-            (static_cast<size_t>(row) * static_cast<size_t>(width) * static_cast<size_t>(channels)) +
-            (static_cast<size_t>(col) * static_cast<size_t>(channels)) + static_cast<size_t>(ch);
+        const size_t out_idx = (static_cast<size_t>(row) * static_cast<size_t>(width) * static_cast<size_t>(channels)) +
+                               (static_cast<size_t>(col) * static_cast<size_t>(channels)) + static_cast<size_t>(ch);
         out[out_idx] = static_cast<uint8_t>(std::clamp(sum, 0.0, 255.0));
       }
     }
@@ -63,13 +62,13 @@ namespace {
   return out;
 }
 
-[[nodiscard]] ImageData LoadRgbImageOrThrow(const std::string& task_id, const std::string& file_name) {
+[[nodiscard]] ImageData LoadRgbImageOrThrow(const std::string &task_id, const std::string &file_name) {
   int width = -1;
   int height = -1;
   int channels_in_file = -1;
 
   const std::string abs_path = ppc::util::GetAbsoluteTaskPath(task_id, file_name);
-  unsigned char* data = stbi_load(abs_path.c_str(), &width, &height, &channels_in_file, STBI_rgb);
+  unsigned char *data = stbi_load(abs_path.c_str(), &width, &height, &channels_in_file, STBI_rgb);
   if (data == nullptr) {
     throw std::runtime_error("Failed to load image '" + abs_path + "': " + std::string(stbi_failure_reason()));
   }
@@ -152,11 +151,11 @@ class ShilinNGaussFilterVerticalSplitRunFuncTestsProcesses
 class ShilinNGaussFilterVerticalSplitRunFuncTestsPic
     : public ppc::util::BaseRunFuncTests<InType, OutType, std::string> {
  public:
-  static std::string PrintTestParam(const std::string& test_param) {
+  static std::string PrintTestParam(const std::string &test_param) {
     std::string s = test_param;
-    for (char& ch : s) {
+    for (char &ch : s) {
       const auto uch = static_cast<unsigned char>(ch);
-      if (!std::isalnum(uch)) {
+      if (std::isalnum(uch) == 0) {
         ch = '_';
       }
     }
@@ -170,7 +169,7 @@ class ShilinNGaussFilterVerticalSplitRunFuncTestsPic
     expected_output_ = ComputeGauss3x3Reference(input_data_);
   }
 
-  bool CheckTestOutputData(OutType& output_data) final {
+  bool CheckTestOutputData(OutType &output_data) final {
     if (output_data.size() != expected_output_.size()) {
       return false;
     }
@@ -183,7 +182,9 @@ class ShilinNGaussFilterVerticalSplitRunFuncTestsPic
     return true;
   }
 
-  InType GetTestInputData() final { return input_data_; }
+  InType GetTestInputData() final {
+    return input_data_;
+  }
 
  private:
   InType input_data_;
@@ -220,14 +221,14 @@ TEST_P(ShilinNGaussFilterVerticalSplitRunFuncTestsPic, ApplyGaussianFilterToPicJ
 const std::array<std::string, 1> kPicParam = {"pic.jpg"};
 
 const auto kPicTasksList = std::tuple_cat(ppc::util::AddFuncTask<ShilinNGaussFilterVerticalSplitMPI, InType>(
-                                             kPicParam, PPC_SETTINGS_shilin_n_gauss_filter_vertical_split),
-                                         ppc::util::AddFuncTask<ShilinNGaussFilterVerticalSplitSEQ, InType>(
-                                             kPicParam, PPC_SETTINGS_shilin_n_gauss_filter_vertical_split));
+                                              kPicParam, PPC_SETTINGS_shilin_n_gauss_filter_vertical_split),
+                                          ppc::util::AddFuncTask<ShilinNGaussFilterVerticalSplitSEQ, InType>(
+                                              kPicParam, PPC_SETTINGS_shilin_n_gauss_filter_vertical_split));
 
 const auto kPicGtestValues = ppc::util::ExpandToValues(kPicTasksList);
 
-const auto kPicTestName = ShilinNGaussFilterVerticalSplitRunFuncTestsPic::PrintFuncTestName<
-    ShilinNGaussFilterVerticalSplitRunFuncTestsPic>;
+const auto kPicTestName =
+    ShilinNGaussFilterVerticalSplitRunFuncTestsPic::PrintFuncTestName<ShilinNGaussFilterVerticalSplitRunFuncTestsPic>;
 
 INSTANTIATE_TEST_SUITE_P(GaussianFilterPicTests, ShilinNGaussFilterVerticalSplitRunFuncTestsPic, kPicGtestValues,
                          kPicTestName);
